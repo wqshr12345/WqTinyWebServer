@@ -7,7 +7,7 @@
 #include<pthread.h>
 
 //线程同步机制包装类
-#include<locker.h>
+#include<../locker/locker.h>
 
 //线程池类。定义成模板类方便代码复用。
 template<typename T>
