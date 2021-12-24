@@ -84,5 +84,46 @@ class http_conn{
 	    //统计用户数量
 	    static int m_user_count;
 	private:
-	//to do   
-}	
+	//该 http连接的socketfd和对方的端口号ip地址
+	int m_sockfd;
+	sockaddr_in m_address;
+	
+	//读缓冲区
+	char m_read_buf[READ_BUFFER_SIZE];
+	//读缓冲区中已经读入的客户数据的最后一个字节的下一个位置   
+	int m_read_idx;
+	//当前正在分析的字符在读缓冲区的位置
+	int m_checked_idx;
+	//当前正在解析的行的起始位置
+	int m_start_line;
+	//写缓冲区
+	char m_write_buf[WRITE_BUFFER_SIZE];
+	//写缓冲区中待发送的字节数
+	int m_write_idx;
+	//主状态机的当前状态
+	CHECK_STATE m_check_state;
+	//请求方法
+	METHOD m_method;
+	
+	//客户请求的目标文件的完整路径，内容等于doc_root+m_url,doc_root是网站根目录
+	char m_real_file[FILENAME_LEN];
+	//客户请求的目标文件的文件名
+	char* m_url;
+	//HTTP协议版本号
+	char* m_version;
+	//主机名
+	char* m_host;
+	//HTTP请求体的长度
+	int m_content_length;
+	//HTTP请求是否要保持连接？
+	bool m_linger;
+
+	//客户请求的目标文件被mmap到内存的起始位置
+	char* m_file_address;
+	//目标文件的状态，通过其可以判断目标文件是否存在、是否为目录、是否可读等
+	struct stat m_file_stat;
+	//使用writev集中写，所以定义下面两个成员。其中m_iv_count表示被写内存块的数量。
+	struct iovec m_iv[2];
+	int m_iv_count;
+};
+#endif	
