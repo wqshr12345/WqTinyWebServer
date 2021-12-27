@@ -10,9 +10,10 @@
 //封装信号量的类
 
 class sem{
+    public:
     sem(){
 	if(sem_init(&m_sem,0,0)!=0){//初始化一个未命名的信号量.第二个参数为0，说明是当前进程的局部信号量.第三个参数为0，说明信号量初值为0.
-	    throw std:exception();
+	    throw std::exception();
 	}
     }
     //销毁信号量，调用sem_destroy函数。如果不掉用，默认的析构函数只会把m_sem删掉，但无法删除对应的一系列内核资源。
@@ -33,7 +34,7 @@ class locker{
     public:
 	locker(){
 	    if(pthread_mutex_init(&m_mutex,NULL)!=0){
-		throw std:exception();
+		throw std::exception();
 	    }
 	}
 	~locker(){
@@ -55,12 +56,12 @@ class cond{
 	cond(){
 	    //创建互斥锁
 	    if(pthread_mutex_init(&m_mutex,NULL)!=0){
-		throw std:exception();
+		throw std::exception();
 	    }
 	    //创建条件变量
 	    if(pthread_cond_init(&m_cond,NULL)!=0){
 		pthread_mutex_destroy(&m_mutex);
-		throw std:exception();
+		throw std::exception();
 	    }
 	}
 	~cond(){
@@ -83,5 +84,5 @@ class cond{
 	pthread_mutex_t m_mutex;
 	pthread_cond_t m_cond;
 };
-
+#endif
 

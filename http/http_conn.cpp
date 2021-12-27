@@ -1,7 +1,7 @@
 #include "http_conn.h"
-#include "../log/log.h"
+//#include "../log/log.h"
 #include<map>
-#include<mysql/mysql.h>
+//#include<mysql/mysql.h>
 #include<fstream>
 
 #define connfdLT //LT模式的连接socket
@@ -54,7 +54,7 @@ void removefd(int epollfd,int fd){
     close(fd);
 }
 //修改epoll内核事件表中的已注册事件
-void modfd(int epollfd,int fd,int ev,int et){
+void modfd(int epollfd,int fd,int ev,bool et){
     epoll_event event;
     event.data.fd = fd;
     event.events = ev|EPOLLONESHOT|EPOLLRDHUP;
@@ -65,7 +65,7 @@ void modfd(int epollfd,int fd,int ev,int et){
 }
 
 int http_conn::m_user_count = 0;//这属于类的static静态成员变量，所有对象共享一份。
-int http_conn::n_epollfd = -1;
+int http_conn::m_epollfd = -1;
 
 //下面是关于http连接操作的函数
 //关闭某个连接
@@ -91,7 +91,7 @@ void http_conn::init(int sockfd,const sockaddr_in &addr){
 }
 
 //初始化连接的子函数，本质上就是初始化各种参数。
-void http_conn:init(){
+void http_conn::init(){
     m_check_state = CHECK_STATE_REQUESTLINE;
     m_linger = false;
     m_method = GET;
@@ -109,26 +109,26 @@ void http_conn:init(){
 }
 
 //从状态机,用于解析一行内容,判断是否为完整行。
-LINE_STATUS parse_line(char* buffer,int& checked_index,int& read_index){
+http_conn::LINE_STATUS http_conn::parse_line(){
     char temp;
     //checked_index指向buffer中正在分析的字节，read_index指向buffer中客户数据的>尾部的下一字节。
-    for(;checked_index<read_index;++checked_index){
-        temp = buffer[checked_index];
-        if(temp = '\r'){
-            if((checked_index+1)==read_index){
+    for(;m_checked_idx<m_read_idx;++m_checked_idx){
+        temp = m_read_buf[m_checked_idx];
+        if(temp == '\r'){
+            if((m_checked_idx+1)==m_read_idx){
                 return LINE_OPEN;
             }
-            else if(buffer[checked_index+1]=='\n'){
-                buffer[checked_index++]='\0';
-                buffer[checked_index++]='\0';
+            else if(m_read_buf[m_checked_idx+1]=='\n'){
+                m_read_buf[m_checked_idx++]='\0';
+                m_read_buf[m_checked_idx++]='\0';
                 return LINE_OK;
             }
             return LINE_BAD;
         }
         else if(temp=='\n'){
-            if((checked_index>1)&&buffer[checked_index-1]=='\r'){
-                buffer[checked_index-1]='\0';
-                buffer[checked_index++]='\0';
+            if((m_checked_idx>1)&&m_read_buf[m_checked_idx-1]=='\r'){
+                m_read_buf[m_checked_idx-1]='\0';
+                m_read_buf[m_checked_idx++]='\0';
                 return LINE_OK;
              }
         return LINE_BAD;
@@ -137,6 +137,28 @@ LINE_STATUS parse_line(char* buffer,int& checked_index,int& read_index){
     return LINE_OPEN;
 }
 
+//循环读取socket中的数据。这是主线程调用的方法，用于把数据放到buf里。
+bool http_conn::read(){
+    if(m_read_idx>=READ_BUFFER_SIZE){
+	return false;
+    }
+    int bytes_read = 0;
+    while(true){
+	bytes_read = recv(m_sockfd,m_read_buf+m_read_idx,READ_BUFFER_SIZE-m_read_idx,0);
+	if(bytes_read == -1){
+	    if(errno == EAGAIN || errno == EWOULDBLOCK){
+		//只有这种情况是socket无数据可读，也就是已经recv完全了，可以return true。
+		break;
+	    }
+	    return false;
+	}
+	else if(bytes_read == 0){
+	    return false;
+	}
+	m_read_idx +=bytes_read;
+    }
+    return true;
+}
 
 //分析请求行 诸如GET http://www.baidu.com/index.html HTTP/1.0
 //吐槽：下面的方法里分割字符串的方法也太丑陋难读了吧。
@@ -180,7 +202,7 @@ http_conn::HTTP_CODE http_conn::parse_request_line(char* text){
 
 http_conn::HTTP_CODE http_conn::parse_headers(char* text){
     //遇到空行，说明头部解析到最后一行了，解析完毕。
-    if(temp[0]=='\0'){
+    if(text[0]=='\0'){
 	//头部解析完毕，判断是否有消息体，如果有，需要把状态转移
 	if(m_content_length!=0){
 	    m_check_state = CHECK_STATE_CONTENT;
@@ -233,9 +255,9 @@ http_conn::HTTP_CODE http_conn::process_read(){
     HTTP_CODE ret = NO_REQUEST;
     char *text = 0;
     //当当前读取了一行的时候，进入后面，
-    while(((m_check_state = CHECK_STATE_CONTENT)&&(line_status==LINE_OK))||((linestatus = parse_line())==LINE_OK)){
+    while(((m_check_state = CHECK_STATE_CONTENT)&&(line_status==LINE_OK))||((line_status = parse_line())==LINE_OK)){
         text = get_line();//这里实际上就是：buffer+startline，后者是这一行在buffer中的起始位置
-        start_line = checked_index;//读完这一行，就把下一次起始位置设置为当前读到的最新地方，也就是该行末尾。
+        m_start_line = m_checked_idx;//读完这一行，就把下一次起始位置设置为当前读到的最新地方，也就是该行末尾。
         switch(m_check_state){
             case CHECK_STATE_REQUESTLINE:
             {
@@ -251,7 +273,7 @@ http_conn::HTTP_CODE http_conn::process_read(){
                 if(ret == BAD_REQUEST){
                     return BAD_REQUEST;
                 }
-                else if(retcode == GET_REQUEST){
+                else if(ret == GET_REQUEST){
                     return do_request();
                 }
                 break;
@@ -259,7 +281,7 @@ http_conn::HTTP_CODE http_conn::process_read(){
 	    case CHECK_STATE_CONTENT:
 	    {
 	        ret = parse_content(text);
-		if(ret == GET_REQUSET){
+		if(ret == GET_REQUEST){
 		    return do_request();
 		}
 		line_status = LINE_OPEN;
@@ -292,11 +314,11 @@ http_conn::HTTP_CODE http_conn::do_request(){
     }
     //S_ISDIR判断目标文件是否为目录
     if(S_ISDIR(m_file_stat.st_mode)){
-	return BAD_REQUSET;
+	return BAD_REQUEST;
     }
     //这里将目标文件通过mmap映射到内存的一块空间...why不直接read然后发socket？或者用sendfile直接把文件往socket写。
     int fd = open(m_real_file,O_RDONLY);
-    m_file_address = (char*)mmap(0,m_file_stat.st_size,PORT_READ,MAP_PRIVATE,fd,0);
+    m_file_address = (char*)mmap(0,m_file_stat.st_size,PROT_READ,MAP_PRIVATE,fd,0);
     close(fd);
     return FILE_REQUEST;
 }
@@ -316,7 +338,7 @@ bool http_conn::write(){
     int bytes_to_send = m_write_idx;//还剩多少字节没发送。
     //什么意思？
     if(bytes_to_send == 0){
-	modfd(epollfd,m_sockfd,EPOLLIN);
+	modfd(m_epollfd,m_sockfd,EPOLLIN,true);
 	init();
 	return true;
     }
@@ -326,7 +348,7 @@ bool http_conn::write(){
 	//如果writev失败，说明集中写失败。why？可能是TCP写缓冲没有空间。这里要重新注册EPOLLOUT事件，因为采用了ET模式，只会返回一次。
 	if(temp<=-1){
 	    if(errno == EAGAIN){
-		modfd(m_epollfd,m_sockfd,EPOLLOUT);
+		modfd(m_epollfd,m_sockfd,EPOLLOUT,true);
 		return true;
 	    }
 	unmap();
@@ -340,11 +362,11 @@ bool http_conn::write(){
 	    //如果是长连接，说明这次http请求处理结束后不close fd，
 	    if(m_linger){
 		init();
-		modfd(m_epollfd,m_sockfd,EPOLLIN);
+		modfd(m_epollfd,m_sockfd,EPOLLIN,true);
 		return true;
 	    }
 	    else{
-		modfd(m_epollfd,m_sockfd,EPOLLIN);
+		modfd(m_epollfd,m_sockfd,EPOLLIN,true);
 		return false;
 	    }
 	}
@@ -352,7 +374,7 @@ bool http_conn::write(){
 }
 
 //往写缓冲中写入待发送的数据
-bool http_conn::add_response(const char* format,---){
+bool http_conn::add_response(const char* format,...){
     if(m_write_idx>=WRITE_BUFFER_SIZE){
 	return false;
     }
@@ -369,7 +391,7 @@ bool http_conn::add_response(const char* format,---){
 
 
 //添加状态行
-bool http_conn:;add_status_line(int status,const char* title){
+bool http_conn::add_status_line(int status,const char* title){
     return add_response("%s %d %s\r\n","HTTP/1.1",status,title);
 }
 
@@ -435,7 +457,7 @@ bool http_conn::process_write(HTTP_CODE ret){
 	    add_status_line(200,ok_200_title);
 	    if(m_file_stat.st_size != 0){
 		add_headers(m_file_stat.st_size);
-		m_iv[0],iov_base = m_write_buf;
+		m_iv[0].iov_base = m_write_buf;
 		m_iv[0].iov_len = m_write_idx;
 		m_iv[1].iov_base = m_file_address;
 		m_iv[1].iov_len = m_file_stat.st_size;
@@ -464,12 +486,12 @@ bool http_conn::process_write(HTTP_CODE ret){
 void http_conn::process(){
     HTTP_CODE read_ret = process_read();
     if(read_ret == NO_REQUEST){
-	modfd(m_epollfd,m_sockfd,EPOLLIN);
+	modfd(m_epollfd,m_sockfd,EPOLLIN,true);
    	return;
      }
     bool write_ret = process_write(read_ret);
     if(!write_ret){
 	close_conn();
     }
-    modfd(m_epollfd,m_sockfd,EPOLLOUT);
+    modfd(m_epollfd,m_sockfd,EPOLLOUT,true);
 }

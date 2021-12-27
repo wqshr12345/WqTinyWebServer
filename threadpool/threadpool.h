@@ -7,7 +7,7 @@
 #include<pthread.h>
 
 //线程同步机制包装类
-#include<../locker/locker.h>
+#include "../locker/locker.h"
 
 //线程池类。定义成模板类方便代码复用。
 template<typename T>
@@ -26,17 +26,17 @@ class threadpool{
 
     private:
 	int m_thread_number;//线程池中线程数量
-	int m_max_request;//请求队列最多允许的等待处理的请求数量
+	int m_max_requests;//请求队列最多允许的等待处理的请求数量
 	pthread_t* m_threads;//描述线程池的数组，大小为m_thread_number。(在进程池中，定义了了一个process类，然后使用了process数组)
 	std::list<T*> m_workqueue;//请求队列
-	locker m_qeueulocker;//保护请求队列的互斥锁
+	locker m_queuelocker;//保护请求队列的互斥锁
 	sem m_queuestat;//判断是否有任务需要处理的信号量
 	bool m_stop;//是否结束线程
 };
 
 //线程池构造函数。初始化了一些重要参数，同时创建好指定数量的线程
 template<typename T>
-threadpool<T>:::threadpool(int thread_number,int max_requests):m_thread_number(thread_number),m_max_requests(max_requests),m_stop(talse),m_threads(NULL){
+threadpool<T>::threadpool(int thread_number,int max_requests):m_thread_number(thread_number),m_max_requests(max_requests),m_stop(false),m_threads(NULL){
     if((thread_number<=0)||(max_requests<=0)){
 	throw std::exception();
     }
@@ -84,7 +84,7 @@ bool threadpool<T>::append(T* request){
 
 //线程的工作函数
 template<typename T>
-void* threadpool<T>::worker*(void* arg){
+void* threadpool<T>::worker(void* arg){
     threadpool* pool = (threadpool*)arg;
     pool->run();
     return pool;

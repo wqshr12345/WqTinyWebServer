@@ -39,8 +39,9 @@ class http_conn{
     enum LINE_STATUS {LINE_OK = 0,LINE_BAD,LINE_OPEN};
     
     public:
-	http_conn();
-	~http_conn();
+	//这里别忘了加上{},因为这里就直接定义完了...不需要在那个cpp文件里定义了。
+	http_conn(){}
+	~http_conn(){}
 
     public:
 	//初始化新的连接
@@ -64,8 +65,9 @@ class http_conn{
 	//被process_read调用以分析HTTP请求
 	HTTP_CODE parse_request_line(char* text);
 	HTTP_CODE parse_headers(char* text);
-	HTTP_CODE PARSE_content(char* text);
-	char* get_line() {return m_read_buf+m_start_line};
+	HTTP_CODE parse_content(char* text);
+	HTTP_CODE do_request();
+	char* get_line() {return m_read_buf+m_start_line;}
 	LINE_STATUS parse_line();
 	
 	//被process_write调用以完成HTTP应答
