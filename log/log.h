@@ -13,11 +13,9 @@ using namespace std;
 class Log{
     //使用函数内局部静态对象实现的懒汉版单例模式
     public:
-	//由于不是c++11版本，编译器无法保证内部静态变量的线程安全性，所以这里要加锁。
+	//编译时是c++11版本，编译器可以保证内部静态变量的线程安全性，无需加锁。
 	static Log* get_instance(){
-	    pthread_mutex_lock(&lock);
-	    static sigle obj;
-	    pthread_mutex_unlock(&lock);
+	    static Log instance;
 	    return &obj;
 	}
 	
@@ -33,9 +31,7 @@ class Log{
 	void flush(void);
 
     private:
-        static pthread_mutex_t lock;
         Log(){
-            pthread_mutex_init(&lock,NULL);
 	    m_count = 0;
 	    m_is_async = false;
         }
@@ -45,6 +41,7 @@ class Log{
 		fclose(m_fp);
 	    }
 	}
+	//子线程的工作函数。
 	void *async_write_log(){
 	    string single_log;
 	    //从阻塞队列中取出一个日志string，写入文件
@@ -55,14 +52,16 @@ class Log{
 	    }
 	}
     private:
-	char dir_name[128];//路径名
-	char log_name[128];//log文件名
+	char dir_name[128];//日志所在路径名
+
+	//日志名=时间+log文件名+序号(因为到了最大行数就要新起一个文件)
+	char log_name[128];//日志的log文件名
 	int m_split_lines;//日志最大行数
 	int m_log_buf_size;//日志缓冲区大小
 	long long m_count;//日志行数记录
 	int m_today;//当前时间
 	FILE *m_fp;//打开log的指针
-	char *m_buf;
+	char *m_buf; //往日志里写的内容存在这里
 	block_queue<string> *m_log_queue;//阻塞队列
 	bool m_is_async;//是否同步标志位
 	locker m_mutex;
