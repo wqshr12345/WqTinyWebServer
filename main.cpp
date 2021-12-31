@@ -13,9 +13,9 @@
 #include "locker/locker.h"
 #include "threadpool/threadpool.h"
 #include "http/http_conn.h"
-#include "timer/wheel_timer.h"
-#include "log/log.h"
-#include "CGImysql/sql_connection_pool.h"
+#include "timer/lst_timer.h"
+//#include "log/log.h"
+//#include "CGImysql/sql_connection_pool.h"
 
 
 #define MAX_FD 65536  //最大文件描述符
