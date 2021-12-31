@@ -22,11 +22,13 @@ const char *error_500_title = "Internal Error";
 const char *error_500_form = "There was an unusual problem serving the requested file.\n";
 
 //网站的根目录（to do）
-const char* doc_root = "/";
+const char* doc_root = "/home/wangqian/GitHub/WqTinyWebServer/root";
+
 
 //设置某fd为非阻塞(为了方便使用ET模式)
 int setnonblocking(int fd){
-    int old_option = fcntl(F_GETFL,fd);
+    //一开始F_GETFL和fd反了，所以我也不知道这个old_option获得了什么鬼东西～
+    int old_option = fcntl(fd,F_GETFL);
     int new_option = old_option | O_NONBLOCK;
     fcntl(fd,F_SETFL,new_option);
     return old_option;
@@ -34,18 +36,15 @@ int setnonblocking(int fd){
 
 //epoll相关函数
 //向epoll内核事件表注册事件(根据define判断是用ET还是LT)
-void addfd(int epollfd,int fd,bool one_shot,bool et){
+void addfd(int epollfd,int fd,bool one_shot){
     epoll_event event;
     event.data.fd = fd;
-    event.events = EPOLLIN|EPOLLRDHUP;
-    if(et){
-	event.events |= EPOLLET;
-	setnonblocking(fd);
-    }
+    event.events = EPOLLIN|EPOLLRDHUP|EPOLLET;
     if(one_shot){
 	event.events |= EPOLLONESHOT;
     }
     epoll_ctl(epollfd,EPOLL_CTL_ADD,fd,&event);
+    setnonblocking(fd);
 }
 
 //从epoll内核事件表中删除事件
@@ -84,8 +83,9 @@ void http_conn::init(int sockfd,const sockaddr_in &addr){
     //如下两行为了避免TIME_WAIT状态，仅仅为了调试方便，关服务器后不用换个端口开启。（不对啊，如果是那样，应该是在主线程的bind前面设置。这里设置的是连接socket，有勾八用？）
     int reuse = 1;
     setsockopt(m_sockfd,SOL_SOCKET,SO_REUSEADDR,&reuse,sizeof(reuse));
-    //在这里设置了ET和oneshot都为true！！！！
-    addfd(m_epollfd,sockfd,true,true);
+    //在这里设置了oneshot为true！！！！
+    addfd(m_epollfd,sockfd,true);
+    printf("register success\n");
     m_user_count ++;
     init();
 }
@@ -116,25 +116,31 @@ http_conn::LINE_STATUS http_conn::parse_line(){
         temp = m_read_buf[m_checked_idx];
         if(temp == '\r'){
             if((m_checked_idx+1)==m_read_idx){
+		printf("open\n");
                 return LINE_OPEN;
             }
             else if(m_read_buf[m_checked_idx+1]=='\n'){
                 m_read_buf[m_checked_idx++]='\0';
                 m_read_buf[m_checked_idx++]='\0';
+		printf("ok\n");
                 return LINE_OK;
             }
+	    printf("bad\n");
             return LINE_BAD;
         }
         else if(temp=='\n'){
-            if((m_checked_idx>1)&&m_read_buf[m_checked_idx-1]=='\r'){
+            if((m_checked_idx>1)&&(m_read_buf[m_checked_idx-1]=='\r')){
                 m_read_buf[m_checked_idx-1]='\0';
                 m_read_buf[m_checked_idx++]='\0';
+		printf("ok\n");
                 return LINE_OK;
              }
+	printf("bad\n");
         return LINE_BAD;
         }
     }
     return LINE_OPEN;
+    printf("open\n");
 }
 
 //循环读取socket中的数据。这是主线程调用的方法，用于把数据放到buf里。
@@ -143,11 +149,12 @@ bool http_conn::read(){
 	return false;
     }
     int bytes_read = 0;
+    //因为使用了ET模式，所以读的时候要循环读取。
     while(true){
 	bytes_read = recv(m_sockfd,m_read_buf+m_read_idx,READ_BUFFER_SIZE-m_read_idx,0);
 	if(bytes_read == -1){
 	    if(errno == EAGAIN || errno == EWOULDBLOCK){
-		//只有这种情况是socket无数据可读，也就是已经recv完全了，可以return true。
+		//只有这种情况是socket无数据可读，也就是已经recv完全了，可以return true。为什么不是return false？因为这个服务器还要接着往这个socket写响应，不能关掉这个socket。
 		break;
 	    }
 	    return false;
@@ -163,37 +170,42 @@ bool http_conn::read(){
 //分析请求行 诸如GET http://www.baidu.com/index.html HTTP/1.0
 //吐槽：下面的方法里分割字符串的方法也太丑陋难读了吧。
 http_conn::HTTP_CODE http_conn::parse_request_line(char* text){
-    char* url = strpbrk(text," \t");
-    if(!url){
+    m_url = strpbrk(text," \t");
+    if(!m_url){
         return BAD_REQUEST;
     }
-    *url++ = '\0';//这样之后原字符串相当于 GET\0http...,url这时候指向h。这么说原来的temp就是GET了，因为遇到\0结束字符串读取，相当于原字符串分成了俩字符串，temp>和url。
+    *m_url++ = '\0';//这样之后原字符串相当于 GET\0http...,url这时候指向h。这么说原来的temp就是GET了，因为遇到\0结束字符串读取，相当于原字符串分成了俩字符串，temp>和url。
 
     char* method = text;
     if(strcasecmp(method,"GET")==0){
         printf("The request method is GET\n");
+	m_method = GET;
+    }
+    else if(strcasecmp(method,"POST")==0){
+	m_method = POST;
+	//cgi = 1;
     }
     else{
         return BAD_REQUEST;
     }
-    url += strspn(url," \t");//跳过url字符串中的 \t字段。
-    char* version = strpbrk(url," \t");
-    if(!version){
+    m_url += strspn(m_url," \t");//跳过url字符串中的 \t字段。
+    m_version = strpbrk(m_url," \t");
+    if(!m_version){
         return BAD_REQUEST;
     }
-    *version++ = '\0';
-    version += strspn(version," \t");
-    if(strcasecmp(version,"HTTP/1.1")!=0){
+    *m_version++ = '\0';
+    m_version += strspn(m_version," \t");
+    if(strcasecmp(m_version,"HTTP/1.1")!=0){
         return BAD_REQUEST;
     }
-    if(strncasecmp(url,"http://",7)==0){
-        url+=7;
-        url = strchr(url,'/');
+    if(strncasecmp(m_url,"http://",7)==0){
+        m_url+=7;
+        m_url = strchr(m_url,'/');
     }
-    if(!url || url[0]!='/'){
+    if(!m_url || m_url[0]!='/'){
         return BAD_REQUEST;
     }
-    printf("The request URL is: %s\n",url);
+    printf("The request URL is: %s\n",m_url);
     m_check_state = CHECK_STATE_HEADER;
     return NO_REQUEST;
 }
@@ -254,13 +266,18 @@ http_conn::HTTP_CODE http_conn::process_read(){
     LINE_STATUS line_status = LINE_OK;
     HTTP_CODE ret = NO_REQUEST;
     char *text = 0;
-    //当当前读取了一行的时候，进入后面，
-    while(((m_check_state = CHECK_STATE_CONTENT)&&(line_status==LINE_OK))||((line_status = parse_line())==LINE_OK)){
+    printf("111\n");
+    //两种情况会进入循环。第一种是完整读取了一行；第二种是虽然没有完整读取一行，但是上一行是完整的一行，而且当前正在读取content字段。
+    while(((m_check_state == CHECK_STATE_CONTENT)&&(line_status==LINE_OK))||((line_status = parse_line())==LINE_OK)){
+	printf("22\n");
         text = get_line();//这里实际上就是：buffer+startline，后者是这一行在buffer中的起始位置
+  	printf("33\n");
         m_start_line = m_checked_idx;//读完这一行，就把下一次起始位置设置为当前读到的最新地方，也就是该行末尾。
+  	printf("44\n");
         switch(m_check_state){
             case CHECK_STATE_REQUESTLINE:
             {
+		printf("55\n");
                 ret = parse_request_line(text);
                 if(ret == BAD_REQUEST){
                     return BAD_REQUEST;
@@ -269,6 +286,7 @@ http_conn::HTTP_CODE http_conn::process_read(){
             }
             case CHECK_STATE_HEADER:
             {
+		printf("66\n");
                 ret = parse_headers(text);
                 if(ret == BAD_REQUEST){
                     return BAD_REQUEST;
@@ -280,6 +298,7 @@ http_conn::HTTP_CODE http_conn::process_read(){
             }
 	    case CHECK_STATE_CONTENT:
 	    {
+		printf("77\n");
 	        ret = parse_content(text);
 		if(ret == GET_REQUEST){
 		    return do_request();
@@ -288,6 +307,7 @@ http_conn::HTTP_CODE http_conn::process_read(){
 		break;
 	    }
             default:{
+		printf("88\n");
                 return INTERNAL_ERROR;
             }
         }
@@ -485,10 +505,13 @@ bool http_conn::process_write(HTTP_CODE ret){
 //线程池中的工作线程调用，这是处理HTTP的入口函数
 void http_conn::process(){
     HTTP_CODE read_ret = process_read();
+    printf("2\n");
     if(read_ret == NO_REQUEST){
+	printf("3\n");
 	modfd(m_epollfd,m_sockfd,EPOLLIN,true);
    	return;
-     }
+    }
+    printf("has read\n");
     bool write_ret = process_write(read_ret);
     if(!write_ret){
 	close_conn();

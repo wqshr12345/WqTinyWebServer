@@ -17,7 +17,7 @@
 #define MAX_FD 65536
 #define MAX_EVENT_NUMBER 10000
 
-extern int addfd(int epollfd,int fd,bool one_shot,bool et);
+extern int addfd(int epollfd,int fd,bool one_shot);
 extern int removefd(int epollfd,int fd);
 
 //用于信号通知主线程epoll的管道。
@@ -27,6 +27,7 @@ static int pipefd[2];
 //static tw_timer timer;
 
 
+//一.信号处理部分。主要是注册信号处理函数等相关函数。
 void sig_handler(int sig){
     int save_errno = errno;
     int msg = sig;
@@ -100,8 +101,10 @@ int main(int argc,char* argv[]){
     int epollfd = epoll_create(5);
     assert(epollfd!=-1);
     //listenfd并不需要设置oneshot，因为其只会被主线程处理，不存在并发问题。et设不设置无所谓。
-    addfd(epollfd,listenfd,false,true);
+    addfd(epollfd,listenfd,false);
 
+    //！！！之前没加这一行，所以http_conn类里的epollfd默认是0，那init的时候都注册到0里面了，注册了个寂寞！
+    http_conn::m_epollfd = epollfd;    
     while(true){
 	int number = epoll_wait(epollfd,events,MAX_EVENT_NUMBER,-1);
 	if((number<0)&&(errno!=EINTR)){
@@ -124,6 +127,7 @@ int main(int argc,char* argv[]){
 		    continue;
 		}
 		//调用init函数为这个连接初始化一些东西，包括不限于读写buffer、文件名称buffer、客户端sock的fd与ip和端口地址。同时还要把这个connfd添加到epoll的内核表(同时注册EPOLLIN可读事件)。
+		printf("new connection coming\n");
 		users[connfd].init(connfd,client_address);
 	    }
 	    //如果遇到异常，直接关闭该连接socket。
@@ -134,10 +138,14 @@ int main(int argc,char* argv[]){
 	    //从这里可以看出，这是一种reactor模式，主线程自己把数据的IO做好了，其他线程只需要处理逻辑业务。
 	    else if(events[i].events & EPOLLIN){
 		//如果读取成功，再调用子线程处理逻辑业务(就是分析解析http请求之类的)
+		printf("new info coming\n");
 		if(users[sockfd].read()){
+		    printf("read success\n");
 		    pool->append(users+sockfd);
+		    printf("read 222\n");
 		}
 		else{
+		    printf("read faliue\n");
 		    users[sockfd].close_conn();
 		}
 	    }
