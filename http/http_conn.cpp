@@ -85,7 +85,6 @@ void http_conn::init(int sockfd,const sockaddr_in &addr){
     setsockopt(m_sockfd,SOL_SOCKET,SO_REUSEADDR,&reuse,sizeof(reuse));
     //在这里设置了oneshot为true！！！！
     addfd(m_epollfd,sockfd,true);
-    printf("register success\n");
     m_user_count ++;
     init();
 }
@@ -116,31 +115,25 @@ http_conn::LINE_STATUS http_conn::parse_line(){
         temp = m_read_buf[m_checked_idx];
         if(temp == '\r'){
             if((m_checked_idx+1)==m_read_idx){
-		printf("open\n");
                 return LINE_OPEN;
             }
             else if(m_read_buf[m_checked_idx+1]=='\n'){
                 m_read_buf[m_checked_idx++]='\0';
                 m_read_buf[m_checked_idx++]='\0';
-		printf("ok\n");
                 return LINE_OK;
             }
-	    printf("bad\n");
             return LINE_BAD;
         }
         else if(temp=='\n'){
             if((m_checked_idx>1)&&(m_read_buf[m_checked_idx-1]=='\r')){
                 m_read_buf[m_checked_idx-1]='\0';
                 m_read_buf[m_checked_idx++]='\0';
-		printf("ok\n");
                 return LINE_OK;
              }
-	printf("bad\n");
         return LINE_BAD;
         }
     }
     return LINE_OPEN;
-    printf("open\n");
 }
 
 //循环读取socket中的数据。这是主线程调用的方法，用于把数据放到buf里。
@@ -266,18 +259,13 @@ http_conn::HTTP_CODE http_conn::process_read(){
     LINE_STATUS line_status = LINE_OK;
     HTTP_CODE ret = NO_REQUEST;
     char *text = 0;
-    printf("111\n");
     //两种情况会进入循环。第一种是完整读取了一行；第二种是虽然没有完整读取一行，但是上一行是完整的一行，而且当前正在读取content字段。
     while(((m_check_state == CHECK_STATE_CONTENT)&&(line_status==LINE_OK))||((line_status = parse_line())==LINE_OK)){
-	printf("22\n");
         text = get_line();//这里实际上就是：buffer+startline，后者是这一行在buffer中的起始位置
-  	printf("33\n");
         m_start_line = m_checked_idx;//读完这一行，就把下一次起始位置设置为当前读到的最新地方，也就是该行末尾。
-  	printf("44\n");
         switch(m_check_state){
             case CHECK_STATE_REQUESTLINE:
             {
-		printf("55\n");
                 ret = parse_request_line(text);
                 if(ret == BAD_REQUEST){
                     return BAD_REQUEST;
@@ -286,7 +274,6 @@ http_conn::HTTP_CODE http_conn::process_read(){
             }
             case CHECK_STATE_HEADER:
             {
-		printf("66\n");
                 ret = parse_headers(text);
                 if(ret == BAD_REQUEST){
                     return BAD_REQUEST;
@@ -298,7 +285,6 @@ http_conn::HTTP_CODE http_conn::process_read(){
             }
 	    case CHECK_STATE_CONTENT:
 	    {
-		printf("77\n");
 	        ret = parse_content(text);
 		if(ret == GET_REQUEST){
 		    return do_request();
@@ -307,7 +293,6 @@ http_conn::HTTP_CODE http_conn::process_read(){
 		break;
 	    }
             default:{
-		printf("88\n");
                 return INTERNAL_ERROR;
             }
         }
@@ -505,13 +490,10 @@ bool http_conn::process_write(HTTP_CODE ret){
 //线程池中的工作线程调用，这是处理HTTP的入口函数
 void http_conn::process(){
     HTTP_CODE read_ret = process_read();
-    printf("2\n");
     if(read_ret == NO_REQUEST){
-	printf("3\n");
 	modfd(m_epollfd,m_sockfd,EPOLLIN,true);
    	return;
     }
-    printf("has read\n");
     bool write_ret = process_write(read_ret);
     if(!write_ret){
 	close_conn();

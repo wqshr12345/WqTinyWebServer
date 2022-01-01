@@ -20,12 +20,14 @@
 
 #define MAX_FD 65536  //最大文件描述符
 #define MAX_EVENT_NUMBER 10000  //epoll最大监听事件数
-#define TIMESLOT   //最小超时单位
+#define TIMESLOT 5  
+//最小超时单位
 
 #define SYNLOG  //同步写日志
 
 extern int addfd(int epollfd,int fd,bool one_shot);
 extern int removefd(int epollfd,int fd);
+extern int setnonblocking(int fd);
 
 //用于信号通知主线程epoll的管道。
 static int pipefd[2];
@@ -137,7 +139,7 @@ int main(int argc,char* argv[]){
     bool stop_server = false;
 
     //设置client_data数组，用于存放具体fd和定时器的对应关系。
-    client_data *users_timer = new cient_data[MAX_FD];
+    client_data *users_timer = new client_data[MAX_FD];
 
     //初始添加alarm信号信息
     bool timeout = false;
@@ -179,7 +181,7 @@ int main(int argc,char* argv[]){
 		time_t cur = time(NULL);
 		timer->expire = cur+3*TIMESLOT;
 		users_timer[connfd].timer = timer;
-		timer_lst.addtimer(timer);
+		timer_lst.add_timer(timer);
 
 
 	    }
@@ -187,7 +189,7 @@ int main(int argc,char* argv[]){
 	    else if(events[i].events&(EPOLLRDHUP|EPOLLHUP|EPOLLERR)){
 		//直接调用定时器的方法去close这个连接，同时把这个定时器从链表里删掉
 		util_timer *timer = users_timer[sockfd].timer;
-		timer->cbfunc(&users_timer[sockfd]);
+		timer->cb_func(&users_timer[sockfd]);
 		if(timer){
 		    timer_lst.del_timer(timer);
 		}
@@ -207,6 +209,7 @@ int main(int argc,char* argv[]){
 			switch(signals[i]){
 			    case SIGALRM:{
 				//因为定时任务不急着处理，在这次epoll之后再处理
+				printf("timeout!\n");
 				timeout = true;
 				break;
 			    }
@@ -227,7 +230,7 @@ int main(int argc,char* argv[]){
 		    //因为有读事件，所以要让定时器的到期时间后延
 		    if(timer){
 			time_t cur = time(NULL);
-			time->expire = cur+3*TIMESLOT;
+			timer->expire = cur+3*TIMESLOT;
 			timer_lst.adjust_timer(timer);
 		    }
 		}
@@ -247,6 +250,7 @@ int main(int argc,char* argv[]){
 		//根据http的长短连接决定写完后是否要close这个连接。
 		if(!users[sockfd].write()){
 		    //如果是短连接，就断掉
+		    printf("这次是短连接\n");
 		    timer->cb_func(&users_timer[sockfd]);
 		    if(timer){
 			timer_lst.del_timer(timer);
@@ -256,7 +260,7 @@ int main(int argc,char* argv[]){
 		//如果是长连接，定时器才有用...
 		else{
 		    if(timer){
-			timer_t cur = time(NULL);
+			time_t cur = time(NULL);
 			timer->expire = cur+3*TIMESLOT;
 			timer_lst.adjust_timer(timer);
 		    }

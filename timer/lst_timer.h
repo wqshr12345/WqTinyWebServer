@@ -2,7 +2,7 @@
 #define LST_TIMER
 
 #include <time.h>
-#include "../log/log.h"
+//#include "../log/log.h"
 
 class util_timer;
 struct client_data
