@@ -16,7 +16,7 @@ class Log{
 	//编译时是c++11版本，编译器可以保证内部静态变量的线程安全性，无需加锁。
 	static Log* get_instance(){
 	    static Log instance;
-	    return &obj;
+	    return &instance;
 	}
 	
 	static void *flush_log_thread(void *args){
@@ -66,8 +66,9 @@ class Log{
 	bool m_is_async;//是否同步标志位
 	locker m_mutex;
 };
-#define LOG_DEBUG(format,...)Log::get_instance()->write_log(0,format,##_VA_ARGS_)
-#define LOG_INFO(format,...)Log::get_instance()->write_log(1,format,##_VA_ARGS_)
-#define LOG_WARN(format,...)Log::get_instance()->write_log(2,format,##_VA_ARGS_)
-#define LOG_ERROR(format,...)Log::get_instance()->write_log(3,format,##_VA_ARGS_)
+//nmd,老子去掉最后一个参数
+#define LOG_DEBUG(format,...) Log::get_instance()->write_log(0,format)
+#define LOG_INFO(format,...) Log::get_instance()->write_log(1,format)
+#define LOG_WARN(format,...) Log::get_instance()->write_log(2,format)
+#define LOG_ERROR(format,...) Log::get_instance()->write_log(3,format)
 #endif

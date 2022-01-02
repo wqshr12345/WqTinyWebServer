@@ -14,7 +14,7 @@
 #include "threadpool/threadpool.h"
 #include "http/http_conn.h"
 #include "timer/lst_timer.h"
-//#include "log/log.h"
+#include "log/log.h"
 //#include "CGImysql/sql_connection_pool.h"
 
 
@@ -24,7 +24,9 @@
 //最小超时单位
 
 #define SYNLOG  //同步写日志
+//#define ASYNLOG //异步写日志
 
+//在另一个cpp文件中定义的三个函数
 extern int addfd(int epollfd,int fd,bool one_shot);
 extern int removefd(int epollfd,int fd);
 extern int setnonblocking(int fd);
@@ -79,6 +81,12 @@ void show_error(int connfd,const char* info){
 }
 
 int main(int argc,char* argv[]){
+#ifdef ASYNLOG
+    Log::get_instance()->init("ServerLog",2000,800000,8);//异步日志模型
+#endif
+#ifdef SYNLOG
+    Log::get_instance()->init("ServerLog",2000,800000,0);//同步日志模型
+#endif
     if(argc<=2){
 	printf("usage:%s ip_address,port_number\n",basename(argv[0]));
 	return -1;
@@ -149,7 +157,8 @@ int main(int argc,char* argv[]){
     while(!stop_server){
 	int number = epoll_wait(epollfd,events,MAX_EVENT_NUMBER,-1);
 	if((number<0)&&(errno!=EINTR)){
-	    printf("epoll failure\n");
+	    LOG_ERROR("%s","epoll failure");
+	    //printf("epoll failure\n");
 	    break;
 	}
 
@@ -160,15 +169,17 @@ int main(int argc,char* argv[]){
 		socklen_t client_addrlength = sizeof(client_address);
 		int connfd = accept(listenfd,(struct sockaddr*)&client_address,&client_addrlength);
 		if(connfd<0){
-		    printf("errno is: %d\n",errno);
+		    //printf("errno is: %d\n",errno);
+		    LOG_ERROR("%serrno is:%d","accept error",errno);
+		    continue;
 		}
 		//m_user_count是http_conn的所有对象共享的一个静态变量，用以表示连接的用户数量。
 		if(http_conn::m_user_count>=MAX_FD){
 		    show_error(connfd,"Internal server busy");
+		    LOG_ERROR("%S","Internal server busy");
 		    continue;
 		}
 		//调用init函数为这个连接初始化一些东西，包括不限于读写buffer、文件名称buffer、客户端sock的fd与ip和端口地址。同时还要把这个connfd添加到epoll的内核表(同时注册EPOLLIN可读事件)。
-		printf("new connection coming\n");
 		users[connfd].init(connfd,client_address);
 
 		//初始化client_data数据  讲道理，这个client_data类的内容可以定义在http_conn类里面，无非就在里面多加一个定时器罢了。
@@ -226,12 +237,16 @@ int main(int argc,char* argv[]){
 		//如果读取成功，再调用子线程处理逻辑业务(就是分析解析http请求之类的)
 		util_timer *timer = users_timer[sockfd].timer;
 		if(users[sockfd].read()){
+		    LOG_INFO("deal with the client(%s)",inet_ntoa(users[sockfd].get_address()->sin_addr));
+		    Log::get_instance()->flush();
 		    pool->append(users+sockfd);
 		    //因为有读事件，所以要让定时器的到期时间后延
 		    if(timer){
 			time_t cur = time(NULL);
 			timer->expire = cur+3*TIMESLOT;
 			timer_lst.adjust_timer(timer);
+			LOG_INFO("%s","adjust timer once");
+			Log::get_instance()->flush();
 		    }
 		}
 		//如果读取失败，就应该close此fd。原来是用close_conn方法，现在也可以用定时器里的cb_func
@@ -259,6 +274,8 @@ int main(int argc,char* argv[]){
 		}
 		//如果是长连接，定时器才有用...
 		else{
+		    LOG_INFO("send data to the client(%s)",inet_ntoa(users[sockfd].get_address()->sin_addr));
+		    Log::get_instance()->flush();
 		    if(timer){
 			time_t cur = time(NULL);
 			timer->expire = cur+3*TIMESLOT;

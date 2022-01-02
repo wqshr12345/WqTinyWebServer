@@ -19,10 +19,10 @@ bool Log::init(const char *file_name,int log_buf_size,int split_lines,int max_qu
 	m_log_queue = new block_queue<string>(max_queue_size);
 	pthread_t tid;
 	//flush_log_thread是子线程的回调函数，用来写日志(成员函数不需要使用作用域运算符就可以直接调用静态成员函数flush_log_thread)
-	pthread_create*(&tid,NULL,flush_log_thread,NULL);
+	pthread_create(&tid,NULL,flush_log_thread,NULL);
     }
     //初始化写缓冲的大小(写缓冲存储此次日志的具体内容)
-    m_log_size = log_buf_size;
+    m_log_buf_size = log_buf_size;
     m_buf = new char[m_log_buf_size];
     memset(m_buf,'\0',m_log_buf_size);
 
@@ -42,7 +42,7 @@ bool Log::init(const char *file_name,int log_buf_size,int split_lines,int max_qu
 
     //如果输入的文件名没有/，直接用时间+文件名fime_name作为日志名log_full_name
     if(p == NULL){
-	snprintf(log_full_name,255,"%d_%02d_%02d_%s",my_tm.tm_year+1900,my_tm.tm_mday,file_name);
+	snprintf(log_full_name,255,"%d_%02d_%02d_%s",my_tm.tm_year+1900,my_tm.tm_mon+1,my_tm.tm_mday,file_name);
     }
     else{
 	//写了些什么勾八东西
@@ -101,18 +101,18 @@ void Log::write_log(int level,const char* format,...){
 	//关闭上一个文件
 	fflush(m_fp);
 	fclose(m_fp);
-	
+ 	char tail[16] = {0};	
 	//存储文件名中的时间部分
 	snprintf(tail,16,"%d_%02d_%02d_",my_tm.tm_year+1900,my_tm.tm_mon+1,my_tm.tm_mday);
 	//如果时间不是今天，就创造今天的日志，并重置m_count,更新m_today
 	if(m_today!=my_tm.tm_mday){
-	    sprintf(new_log,255,"%s%s%s",dir_name,tail,log_name);
+	    snprintf(new_log,255,"%s%s%s",dir_name,tail,log_name);
 	    m_today = my_tm.tm_mday;
 	    m_count = 0;
 	}
 	//否则，说明行数到达了最大行，应该在新建的日志后面加后缀
 	else{
-	    sprintf(new_log,255,"%s%s%s.%lld",dir_name.tail,log_name,m_count/m_split_lines);
+	    snprintf(new_log,255,"%s%s%s.%lld",dir_name,tail,log_name,m_count/m_split_lines);
 	}
 	m_fp = fopen(new_log,"a");
     }
@@ -146,5 +146,12 @@ void Log::write_log(int level,const char* format,...){
 	m_mutex.unlock();
     } 
     va_end(valst);
+
+}
+
+void Log::flush(void){
+    m_mutex.lock();
+    fflush(m_fp);
+    m_mutex.unlock();
 
 }

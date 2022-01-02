@@ -1,5 +1,5 @@
 #include "http_conn.h"
-//#include "../log/log.h"
+#include "../log/log.h"
 #include<map>
 //#include<mysql/mysql.h>
 #include<fstream>
@@ -238,7 +238,8 @@ http_conn::HTTP_CODE http_conn::parse_headers(char* text){
     }
     //其他字段不处理
     else{
-        printf("Sorry!I can not handle this header\n");
+	LOG_INFO("oop!unknow header:%s",text);
+       //printf("Sorry!I can not handle this header\n");
     }
     return NO_REQUEST;
 }
@@ -263,6 +264,8 @@ http_conn::HTTP_CODE http_conn::process_read(){
     while(((m_check_state == CHECK_STATE_CONTENT)&&(line_status==LINE_OK))||((line_status = parse_line())==LINE_OK)){
         text = get_line();//这里实际上就是：buffer+startline，后者是这一行在buffer中的起始位置
         m_start_line = m_checked_idx;//读完这一行，就把下一次起始位置设置为当前读到的最新地方，也就是该行末尾。
+	LOG_INFO("this line is:%s",text);
+	Log::get_instance()->flush();
         switch(m_check_state){
             case CHECK_STATE_REQUESTLINE:
             {

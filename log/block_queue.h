@@ -120,12 +120,12 @@ class block_queue{
 		    return false;
 		}
 	    }
-	}
 	m_front = (m_front+1)%m_max_size;
 	item = m_array[m_front];
 	m_size--;
 	m_mutex.unlock();
 	return true;
+	}
     private:
 	locker m_mutex;
 	cond m_cond;
