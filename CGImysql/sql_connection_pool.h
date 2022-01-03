@@ -8,7 +8,7 @@
 #include<string.h>
 #include<iostream>
 #include<string>
-#include<../locker/locker.h>
+#include "../locker/locker.h"
 
 using namespace std;
 
@@ -17,7 +17,7 @@ class connection_pool{
 	MYSQL *GetConnection();//获取数据库连接
 	bool ReleaseConnection(MYSQL *conn);//释放数据库连接
 	int GetFreeConn();//获取连接？
-	void DEstroyPool();//销毁所有连接
+	void DestroyPool();//销毁所有连接
 
 	//单例模式
 	static connection_pool *Instance();
@@ -42,7 +42,7 @@ class connection_pool{
 	string Port;//数据库端口
 	string User;//登录数据库用户名
 	string PassWord;//登录数据库密码
-	string DatbaseName;//数据库名
+	string DatabaseName;//数据库名
 };
 
 class connectionRALL{

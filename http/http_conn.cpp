@@ -25,6 +25,36 @@ const char *error_500_form = "There was an unusual problem serving the requested
 const char* doc_root = "/home/wangqian/GitHub/WqTinyWebServer/root";
 
 
+//存储用户名和密码的对应关系
+map<string,string> users;
+
+//当前http_conn对象从数据库中得到关于user的数据库信息，准备应对即将到来的http请求。
+void http_conn::initmysql_result(connection_pool *connPool){
+    //从连接池获取一个连接
+    MYSQL *mysql = NULL;
+    connectionRALL mysqlcon(&mysql,connPool);
+    //sql语句读数据库
+    if(mysql_query(mysql,"SELECT username,passwd,FROM user")){
+	LOG_ERROR("select error:%s\n",mysql_error(mysql));
+    }
+    //检验表中完整结果集
+    MYSQL_RES *result = mysql_store_result(mysql);
+
+    //返回结果集中的列数
+    int num_fields = mysql_num_fields(result);
+
+    //返回所有字段结构的数组
+    MYSQL_FIELD *fields = mysql_fetch_field(result);
+
+    //从结果集中获取所有的用户名和密码，存入map
+    while(MYSQL_ROW row = mysql_fetch_row(result)){
+	string temp1(row[0]);
+	string temp2(row[1]);
+	users[temp1] = temp2;
+    }
+}
+
+
 //设置某fd为非阻塞(为了方便使用ET模式)
 int setnonblocking(int fd){
     //一开始F_GETFL和fd反了，所以我也不知道这个old_option获得了什么鬼东西～

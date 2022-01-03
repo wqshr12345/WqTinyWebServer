@@ -23,7 +23,7 @@ connection_pool *connection_pool::Instance(){
 }
 
 //初始化数据库连接池方法
-void connection_pool::init(string Url,strign User,string PassWord,strign DBName,int Port,unsigned int MaxConn){
+void connection_pool::init(string Url,string User,string PassWord,string DBName,int Port,unsigned int MaxConn){
     this->Url = Url;
     this->Port = Port;
     this->User = User;
@@ -73,7 +73,7 @@ MYSQL *connection_pool::GetConnection(){
 }
 
 //释放一个连接到连接池。类似生产者(只不过这个生产者永远不会阻塞，因为数量最多就是Max)
-bool connection_pool::REleaseConnection(MYSQL *con){
+bool connection_pool::ReleaseConnection(MYSQL *con){
     if(NULL == con)
 	return false;
     lock.lock();
@@ -96,7 +96,7 @@ void connection_pool::DestroyPool(){
 	}
 	CurConn = 0;
 	FreeConn = 0;
-	connlist.clear();
+	connList.clear();
 	lock.unlock();
     }
     lock.unlock();
@@ -119,5 +119,5 @@ connectionRALL::connectionRALL(MYSQL **SQL,connection_pool *connPool){
 }
 
 connectionRALL::~connectionRALL(){
-    pollRALL->ReleaseConnection(conRALL);
+    poolRALL->ReleaseConnection(conRALL);
 }

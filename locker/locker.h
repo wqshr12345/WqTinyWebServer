@@ -16,6 +16,12 @@ class sem{
 	    throw std::exception();
 	}
     }
+    //用外部int初始化sem
+    sem(int num){
+	if(sem_init(&m_sem,0,num)!=0){
+	    throw std::exception();
+	}
+    }
     //销毁信号量，调用sem_destroy函数。如果不掉用，默认的析构函数只会把m_sem删掉，但无法删除对应的一系列内核资源。
     ~sem(){
 	sem_destroy(&m_sem);

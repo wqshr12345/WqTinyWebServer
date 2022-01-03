@@ -19,7 +19,7 @@
 #include<stdarg.h>
 #include<errno.h>
 #include "../locker/locker.h"
-
+#include "../CGImysql/sql_connection_pool.h"
 //线程池的模板参数类，用于封装对逻辑任务的处理。
 class http_conn{
     public:
@@ -54,7 +54,11 @@ class http_conn{
 	bool read();
 	//非阻塞写操作
 	bool write();
-
+	//得到address地址
+	sockaddr_in* get_address(){
+	    return &m_address;
+	}
+	void initmysql_result(connection_pool *connPool);
     private:
 	//初始化连接
 	void init();

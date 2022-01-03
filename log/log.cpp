@@ -68,7 +68,8 @@ void Log::write_log(int level,const char* format,...){
     struct tm *sys_tm = localtime(&t);
     struct tm my_tm = *sys_tm;
     char s[16] = {0};
-
+ 
+    printf("这是日志内容:%s",format);
     //根据分级写入不同内容
     switch(level){
 	case 0:

@@ -15,7 +15,7 @@
 #include "http/http_conn.h"
 #include "timer/lst_timer.h"
 #include "log/log.h"
-//#include "CGImysql/sql_connection_pool.h"
+#include "CGImysql/sql_connection_pool.h"
 
 
 #define MAX_FD 65536  //最大文件描述符
@@ -95,6 +95,10 @@ int main(int argc,char* argv[]){
     const char* ip = argv[1];
     int port = atoi(argv[2]);
 
+    //初始化数据库连接池
+    connection_pool *connPool = connection_pool::Instance();
+    connPool->init("localhost","root","wqshr0425","web",3306,8);    
+
     //初始化线程池，此时所有线程都是饥饿状态，wait()死等着。
     threadpool<http_conn>* pool =NULL;
     try{
@@ -108,6 +112,9 @@ int main(int argc,char* argv[]){
     http_conn* users = new http_conn[MAX_FD];
     assert(users);
     int user_count = 0;
+
+    //初始化数据库读取表
+    users->initmysql_result(connPool);
 
     //监听socket的建立绑定监听等
     int listenfd = socket(AF_INET,SOCK_STREAM,0);
