@@ -23,8 +23,8 @@
 #define TIMESLOT 5  
 //最小超时单位
 
-#define SYNLOG  //同步写日志
-//#define ASYNLOG //异步写日志
+//#define SYNLOG  //同步写日志
+#define ASYNLOG //异步写日志
 
 //在另一个cpp文件中定义的三个函数
 extern int addfd(int epollfd,int fd,bool one_shot);
@@ -98,7 +98,7 @@ int main(int argc,char* argv[]){
     //初始化数据库连接池
     connection_pool *connPool = connection_pool::Instance();
     connPool->init("localhost","root","wqshr0425","web",3306,8);    
-
+    
     //初始化线程池，此时所有线程都是饥饿状态，wait()死等着。
     threadpool<http_conn>* pool =NULL;
     try{
@@ -108,6 +108,7 @@ int main(int argc,char* argv[]){
     {
 	return 1;
     }
+    
     //为每个socket创建一个http_conn对象
     http_conn* users = new http_conn[MAX_FD];
     assert(users);
@@ -115,7 +116,7 @@ int main(int argc,char* argv[]){
 
     //初始化数据库读取表
     users->initmysql_result(connPool);
-
+    
     //监听socket的建立绑定监听等
     int listenfd = socket(AF_INET,SOCK_STREAM,0);
     assert(listenfd!=-1);

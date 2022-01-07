@@ -1,0 +1,84 @@
+2022-01-04 09:13:20.000360 [info]:deal with the client(127.0.0.1)
+2022-01-04 09:13:20.000812 [info]:adjust timer once
+2022-01-04 09:13:20.000824 [info]:this line is:GET /favicon.ico HTTP/1.1
+2022-01-04 09:13:20.000897 [info]:this line is:Host: localhost:12345
+2022-01-04 09:13:20.000911 [info]:this line is:User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:88.0) Gecko/20100101 Firefox/88.0
+2022-01-04 09:13:20.000919 [info]:oop!unknow header:User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:88.0) Gecko/20100101 Firefox/88.0
+2022-01-04 09:13:20.000924 [info]:this line is:Accept: image/webp,*/*
+2022-01-04 09:13:20.000932 [info]:oop!unknow header:Accept: image/webp,*/*
+2022-01-04 09:13:20.000937 [info]:this line is:Accept-Language: zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2
+2022-01-04 09:13:20.000944 [info]:oop!unknow header:Accept-Language: zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2
+2022-01-04 09:13:20.000964 [info]:this line is:Accept-Encoding: gzip, deflate
+2022-01-04 09:13:20.000981 [info]:oop!unknow header:Accept-Encoding: gzip, deflate
+2022-01-04 09:13:20.000993 [info]:this line is:Connection: keep-alive
+2022-01-04 09:13:20.001010 [info]:this line is:Referer: http://localhost:12345/welcome.html
+2022-01-04 09:13:20.001024 [info]:oop!unknow header:Referer: http://localhost:12345/welcome.html
+2022-01-04 09:13:20.001032 [info]:this line is:
+2022-01-04 09:13:22.796953 [info]:deal with the client(127.0.0.1)
+2022-01-04 09:13:22.797009 [info]:adjust timer once
+2022-01-04 09:13:22.797058 [info]:this line is:GET /welcome.html HTTP/1.1
+2022-01-04 09:13:22.797131 [info]:this line is:Host: localhost:12345
+2022-01-04 09:13:22.797144 [info]:this line is:User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:88.0) Gecko/20100101 Firefox/88.0
+2022-01-04 09:13:22.797153 [info]:oop!unknow header:User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:88.0) Gecko/20100101 Firefox/88.0
+2022-01-04 09:13:22.797158 [info]:this line is:Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8
+2022-01-04 09:13:22.797165 [info]:oop!unknow header:Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8
+2022-01-04 09:13:22.797170 [info]:this line is:Accept-Language: zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2
+2022-01-04 09:13:22.797177 [info]:oop!unknow header:Accept-Language: zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2
+2022-01-04 09:13:22.797182 [info]:this line is:Accept-Encoding: gzip, deflate
+2022-01-04 09:13:22.797189 [info]:oop!unknow header:Accept-Encoding: gzip, deflate
+2022-01-04 09:13:22.797194 [info]:this line is:Connection: keep-alive
+2022-01-04 09:13:22.797201 [info]:this line is:Upgrade-Insecure-Requests: 1
+2022-01-04 09:13:22.797209 [info]:oop!unknow header:Upgrade-Insecure-Requests: 1
+2022-01-04 09:13:22.797214 [info]:this line is:Cache-Control: max-age=0
+2022-01-04 09:13:22.797221 [info]:oop!unknow header:Cache-Control: max-age=0
+2022-01-04 09:13:22.797226 [info]:this line is:
+2022-01-04 09:14:28.661902 [info]:deal with the client(127.0.0.1)
+2022-01-04 09:14:28.661972 [info]:adjust timer once
+2022-01-04 09:14:28.662004 [info]:this line is:GET /welcome.html HTTP/1.1
+2022-01-04 09:14:28.662086 [info]:this line is:Host: localhost:12344
+2022-01-04 09:14:28.662101 [info]:this line is:User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:88.0) Gecko/20100101 Firefox/88.0
+2022-01-04 09:14:28.662110 [info]:oop!unknow header:User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:88.0) Gecko/20100101 Firefox/88.0
+2022-01-04 09:14:28.662115 [info]:this line is:Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8
+2022-01-04 09:14:28.662123 [info]:oop!unknow header:Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8
+2022-01-04 09:14:28.662128 [info]:this line is:Accept-Language: zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2
+2022-01-04 09:14:28.662145 [info]:oop!unknow header:Accept-Language: zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2
+2022-01-04 09:14:28.662155 [info]:this line is:Accept-Encoding: gzip, deflate
+2022-01-04 09:14:28.662180 [info]:oop!unknow header:Accept-Encoding: gzip, deflate
+2022-01-04 09:14:28.662187 [info]:this line is:Connection: keep-alive
+2022-01-04 09:14:28.662197 [info]:this line is:Upgrade-Insecure-Requests: 1
+2022-01-04 09:14:28.662208 [info]:oop!unknow header:Upgrade-Insecure-Requests: 1
+2022-01-04 09:14:28.662215 [info]:this line is:
+2022-01-04 09:14:28.694371 [info]:deal with the client(127.0.0.1)
+2022-01-04 09:14:28.694445 [info]:adjust timer once
+2022-01-04 09:14:28.694497 [info]:this line is:GET /favicon.ico HTTP/1.1
+2022-01-04 09:14:28.694566 [info]:this line is:Host: localhost:12344
+2022-01-04 09:14:28.694577 [info]:this line is:User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:88.0) Gecko/20100101 Firefox/88.0
+2022-01-04 09:14:28.694586 [info]:oop!unknow header:User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:88.0) Gecko/20100101 Firefox/88.0
+2022-01-04 09:14:28.694591 [info]:this line is:Accept: image/webp,*/*
+2022-01-04 09:14:28.694599 [info]:oop!unknow header:Accept: image/webp,*/*
+2022-01-04 09:14:28.694604 [info]:this line is:Accept-Language: zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2
+2022-01-04 09:14:28.694611 [info]:oop!unknow header:Accept-Language: zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2
+2022-01-04 09:14:28.694616 [info]:this line is:Accept-Encoding: gzip, deflate
+2022-01-04 09:14:28.694623 [info]:oop!unknow header:Accept-Encoding: gzip, deflate
+2022-01-04 09:14:28.694628 [info]:this line is:Connection: keep-alive
+2022-01-04 09:14:28.694635 [info]:this line is:Referer: http://localhost:12344/welcome.html
+2022-01-04 09:14:28.694644 [info]:oop!unknow header:Referer: http://localhost:12344/welcome.html
+2022-01-04 09:14:28.694648 [info]:this line is:
+2022-01-04 09:14:34.603040 [info]:deal with the client(127.0.0.1)
+2022-01-04 09:14:34.603093 [info]:adjust timer once
+2022-01-04 09:14:34.603109 [info]:this line is:GET /welcome.html HTTP/1.1
+2022-01-04 09:14:34.603186 [info]:this line is:Host: localhost:12344
+2022-01-04 09:14:34.603210 [info]:this line is:User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:88.0) Gecko/20100101 Firefox/88.0
+2022-01-04 09:14:34.603225 [info]:oop!unknow header:User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:88.0) Gecko/20100101 Firefox/88.0
+2022-01-04 09:14:34.603233 [info]:this line is:Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8
+2022-01-04 09:14:34.603245 [info]:oop!unknow header:Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8
+2022-01-04 09:14:34.603253 [info]:this line is:Accept-Language: zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2
+2022-01-04 09:14:34.603266 [info]:oop!unknow header:Accept-Language: zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2
+2022-01-04 09:14:34.603273 [info]:this line is:Accept-Encoding: gzip, deflate
+2022-01-04 09:14:34.603287 [info]:oop!unknow header:Accept-Encoding: gzip, deflate
+2022-01-04 09:14:34.603298 [info]:this line is:Connection: keep-alive
+2022-01-04 09:14:34.603321 [info]:this line is:Upgrade-Insecure-Requests: 1
+2022-01-04 09:14:34.603399 [info]:oop!unknow header:Upgrade-Insecure-Requests: 1
+2022-01-04 09:14:34.603414 [info]:this line is:Cache-Control: max-age=0
+2022-01-04 09:14:34.603426 [info]:oop!unknow header:Cache-Control: max-age=0
+2022-01-04 09:14:34.603433 [info]:this line is:

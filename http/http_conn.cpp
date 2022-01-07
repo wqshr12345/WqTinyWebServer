@@ -34,7 +34,7 @@ void http_conn::initmysql_result(connection_pool *connPool){
     MYSQL *mysql = NULL;
     connectionRALL mysqlcon(&mysql,connPool);
     //sql语句读数据库
-    if(mysql_query(mysql,"SELECT username,passwd,FROM user")){
+    if(mysql_query(mysql,"SELECT username,passwd FROM user")){
 	LOG_ERROR("select error:%s\n",mysql_error(mysql));
     }
     //检验表中完整结果集
