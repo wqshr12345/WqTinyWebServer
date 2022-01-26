@@ -1,0 +1,68 @@
+2022-01-23 08:53:36.560315 [info]:deal with the client(192.168.80.129)
+2022-01-23 08:53:36.560368 [info]:adjust timer once
+2022-01-23 08:53:36.560534 [info]:this line is:Accept-Encoding: gzip, deflate
+2022-01-23 08:53:36.560542 [info]:oop!unknow header:Accept-Encoding: gzip, deflate
+2022-01-23 08:53:36.560546 [info]:this line is:Connection: keep-alive
+2022-01-23 08:53:36.560553 [info]:this line is:Upgrade-Insecure-Requests: 1
+2022-01-23 08:53:36.560580 [info]:oop!unknow header:Upgrade-Insecure-Requests: 1
+2022-01-23 08:53:36.560584 [info]:this line is:
+2022-01-23 08:53:36.560382 [info]:this line is:GET /welcome.html HTTP/1.1
+2022-01-23 08:53:36.560498 [info]:this line is:Host: 192.168.80.129:12345
+2022-01-23 08:53:36.560509 [info]:this line is:User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:88.0) Gecko/20100101 Firefox/88.0
+2022-01-23 08:53:36.560514 [info]:oop!unknow header:User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:88.0) Gecko/20100101 Firefox/88.0
+2022-01-23 08:53:36.560518 [info]:this line is:Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8
+2022-01-23 08:53:36.560522 [info]:oop!unknow header:Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8
+2022-01-23 08:53:36.560526 [info]:this line is:Accept-Language: zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2
+2022-01-23 08:53:36.560530 [info]:oop!unknow header:Accept-Language: zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2
+2022-01-23 08:53:40.252892 [info]:deal with the client(192.168.80.129)
+2022-01-23 08:53:40.252936 [info]:this line is:POST /5 HTTP/1.1
+2022-01-23 08:53:40.253058 [info]:oop!unknow header:Accept-Encoding: gzip, deflate
+2022-01-23 08:53:40.253062 [info]:this line is:Content-Type: application/x-www-form-urlencoded
+2022-01-23 08:53:40.253069 [info]:oop!unknow header:Content-Type: application/x-www-form-urlencoded
+2022-01-23 08:53:40.253074 [info]:this line is:Content-Length: 0
+2022-01-23 08:53:40.253084 [info]:this line is:Origin: http://192.168.80.129:12345
+2022-01-23 08:53:40.253092 [info]:oop!unknow header:Origin: http://192.168.80.129:12345
+2022-01-23 08:53:40.253096 [info]:this line is:Connection: keep-alive
+2022-01-23 08:53:40.253103 [info]:this line is:Referer: http://192.168.80.129:12345/welcome.html
+2022-01-23 08:53:40.253128 [info]:oop!unknow header:Referer: http://192.168.80.129:12345/welcome.html
+2022-01-23 08:53:40.253134 [info]:this line is:Upgrade-Insecure-Requests: 1
+2022-01-23 08:53:40.253141 [info]:oop!unknow header:Upgrade-Insecure-Requests: 1
+2022-01-23 08:53:40.253012 [info]:this line is:Host: 192.168.80.129:12345
+2022-01-23 08:53:40.253028 [info]:this line is:User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:88.0) Gecko/20100101 Firefox/88.0
+2022-01-23 08:53:40.253034 [info]:oop!unknow header:User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:88.0) Gecko/20100101 Firefox/88.0
+2022-01-23 08:53:40.253038 [info]:this line is:Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8
+2022-01-23 08:53:40.253042 [info]:oop!unknow header:Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8
+2022-01-23 08:53:40.253046 [info]:this line is:Accept-Language: zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2
+2022-01-23 08:53:40.253050 [info]:oop!unknow header:Accept-Language: zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2
+2022-01-23 08:53:40.253054 [info]:this line is:Accept-Encoding: gzip, deflate
+2022-01-23 08:53:40.252946 [info]:adjust timer once
+2022-01-23 08:53:40.253145 [info]:this line is:
+2022-01-23 08:53:45.467103 [info]:deal with the client(192.168.80.129)
+2022-01-23 08:53:45.467142 [info]:adjust timer once
+2022-01-23 08:53:45.467176 [info]:this line is:POST /6 HTTP/1.1
+2022-01-23 08:53:45.467257 [info]:this line is:Host: 192.168.80.129:12345
+2022-01-23 08:53:45.467265 [info]:this line is:User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:88.0) Gecko/20100101 Firefox/88.0
+2022-01-23 08:53:45.467269 [info]:oop!unknow header:User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:88.0) Gecko/20100101 Firefox/88.0
+2022-01-23 08:53:45.467273 [info]:this line is:Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8
+2022-01-23 08:53:45.467277 [info]:oop!unknow header:Accept: text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8
+2022-01-23 08:53:45.467286 [info]:this line is:Accept-Language: zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2
+2022-01-23 08:53:45.467299 [info]:oop!unknow header:Accept-Language: zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2
+2022-01-23 08:53:45.467305 [info]:this line is:Accept-Encoding: gzip, deflate
+2022-01-23 08:53:45.467308 [info]:oop!unknow header:Accept-Encoding: gzip, deflate
+2022-01-23 08:53:45.467316 [info]:this line is:Content-Type: application/x-www-form-urlencoded
+2022-01-23 08:53:45.467346 [info]:oop!unknow header:Content-Type: application/x-www-form-urlencoded
+2022-01-23 08:53:45.467352 [info]:this line is:Content-Length: 0
+2022-01-23 08:53:45.467356 [info]:this line is:Origin: http://192.168.80.129:12345
+2022-01-23 08:53:45.467372 [info]:oop!unknow header:Origin: http://192.168.80.129:12345
+2022-01-23 08:53:45.467380 [info]:this line is:Connection: keep-alive
+2022-01-23 08:53:45.467388 [info]:this line is:Referer: http://192.168.80.129:12345/welcome.html
+2022-01-23 08:53:45.467399 [info]:oop!unknow header:Referer: http://192.168.80.129:12345/welcome.html
+2022-01-23 08:53:45.467404 [info]:this line is:Upgrade-Insecure-Requests: 1
+2022-01-23 08:55:04.557414 [info]:this line is:Accept-Language: zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2
+2022-01-23 08:55:04.557439 [info]:oop!unknow header:Accept-Language: zh-CN,zh;q=0.8,zh-TW;q=0.7,zh-HK;q=0.5,en-US;q=0.3,en;q=0.2
+2022-01-23 08:55:04.557444 [info]:this line is:Accept-Encoding: gzip, deflate
+2022-01-23 08:55:04.557452 [info]:oop!unknow header:Accept-Encoding: gzip, deflate
+2022-01-23 08:55:04.557456 [info]:this line is:Connection: keep-alive
+2022-01-23 08:55:04.557464 [info]:this line is:Upgrade-Insecure-Requests: 1
+2022-01-23 08:55:04.557471 [info]:oop!unknow header:Upgrade-Insecure-Requests: 1
+2022-01-23 08:55:04.557476 [info]:this line is:

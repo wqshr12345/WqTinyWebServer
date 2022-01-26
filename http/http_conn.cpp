@@ -1,7 +1,7 @@
 #include "http_conn.h"
 #include "../log/log.h"
 #include<map>
-//#include<mysql/mysql.h>
+#include<mysql/mysql.h>
 #include<fstream>
 
 #define connfdLT //LT模式的连接socket
@@ -25,9 +25,11 @@ const char *error_500_form = "There was an unusual problem serving the requested
 const char* doc_root = "/home/wangqian/GitHub/WqTinyWebServer/root";
 
 
+//有一说一，在这种地方定义的变量，是进程里的全局变量，跟类没关系了。
 //存储用户名和密码的对应关系
 map<string,string> users;
-
+//后面数据库操作时上的锁
+locker m_lock;
 //当前http_conn对象从数据库中得到关于user的数据库信息，准备应对即将到来的http请求。
 void http_conn::initmysql_result(connection_pool *connPool){
     //从连接池获取一个连接
@@ -121,6 +123,7 @@ void http_conn::init(int sockfd,const sockaddr_in &addr){
 
 //初始化连接的子函数，本质上就是初始化各种参数。
 void http_conn::init(){
+    mysql = NULL;
     m_check_state = CHECK_STATE_REQUESTLINE;
     m_linger = false;
     m_method = GET;
@@ -206,7 +209,8 @@ http_conn::HTTP_CODE http_conn::parse_request_line(char* text){
     }
     else if(strcasecmp(method,"POST")==0){
 	m_method = POST;
-	//cgi = 1;
+	//如果是post请求，就把cgi标志位设为1
+	cgi = 1;
     }
     else{
         return BAD_REQUEST;
@@ -221,13 +225,21 @@ http_conn::HTTP_CODE http_conn::parse_request_line(char* text){
     if(strcasecmp(m_version,"HTTP/1.1")!=0){
         return BAD_REQUEST;
     }
+    //m_url现在是http://baidu.com/index.html 之类。前面的http://是没有意义的，应该去掉.去掉之后剩下baidu.com/index.html这类。还应该让m_url自己跳到index.html，用strchr。
     if(strncasecmp(m_url,"http://",7)==0){
         m_url+=7;
         m_url = strchr(m_url,'/');
     }
+    if(strncasecmp(m_url,"https://",8)==0){
+	m_url+=8;
+	m_url = strchr(m_url,'/');
+    }
     if(!m_url || m_url[0]!='/'){
         return BAD_REQUEST;
     }
+    //当url没有指定访问界面时，应该访问一个默认界面。这个界面自己设置。java服务器中一般是index.html
+    if(strlen(m_url)==1)
+	strcat(m_url,"judge.html");
     printf("The request URL is: %s\n",m_url);
     m_check_state = CHECK_STATE_HEADER;
     return NO_REQUEST;
@@ -274,10 +286,12 @@ http_conn::HTTP_CODE http_conn::parse_headers(char* text){
     return NO_REQUEST;
 }
 
-//分析消息体字段。仅仅判断其是否被完全读入
+//分析消息体字段。如果是get的话，消息体肯定为空。如果是post，消息体有内容，需要读到一块内存。
+//另外分析消息体肯定是http请求的最后，所以要根据根据read_idx和checked_idx的差判断是否读取完成。
 http_conn::HTTP_CODE http_conn::parse_content(char *text){
     if(m_read_idx>=(m_content_length+m_checked_idx)){
 	text[m_content_length] = '\0';
+	m_string = text;
 	return GET_REQUEST;
     }
     return NO_REQUEST;
@@ -334,13 +348,120 @@ http_conn::HTTP_CODE http_conn::process_read(){
 }
 
 
-//得到一个完整的HTTP请求时，需要分析这个请求的具体内容。
+//得到一个完整的HTTP请求时，需要分析这个请求的具体内容.根据是post还是get，做出不同的反应。如果是get，直接就在m_real_file的地方设置好请求文件路径，去那个路径读取文件内容再返回就好了；如果是post，就不是请求一个文件了，而是可能有一些操作，需要自定义。
 
 http_conn::HTTP_CODE http_conn::do_request(){
     //把doc_root复制到m_real_file指向的地方，准备作为目标文件的地址
     strcpy(m_real_file,doc_root);
     int len = strlen(doc_root);
+    //p指代的就是真实请求地址，比如是/index.html(get下) 比如是/2(post下)
+    const char *p = strchr(m_url,'/');
+
+
+//为2说明是点击注册按钮后客户端发来的、为3说明是点击登录按钮后客户端发来的、为0说明是跳转到注册界面、为1说明是跳转到登录界面、为5说明是跳转到图画界面、为6说明是跳转到video界面、为7说明是跳转到fans界面。
+
+    //判断当前request是get还是post.如果是post，那么是登录or注册？
+    if(cgi==1&&(*(p+1)=='2'||*(p+1)=='3')){
+	char flag = m_url[1];//0或1或2等
+	//申请内存m_url_real，用于存储
+	char *m_url_real = (char*)malloc(sizeof(char)*200);
+	strcpy(m_url_real,"/");
+	strcat(m_url_real,m_url+2);
+	strncpy(m_real_file+len,m_url_real,FILENAME_LEN-len-1);
+	free(m_url_real);
+	//提取出用户名和密码
+	char name[100],password[100];
+	int i = 0;
+	for(i = 5;m_string[i]!='&';i++){
+	    name[i-5] = m_string[i];
+	}
+	//字符串末尾添0
+	name[i-5] = '\0';
+	int j =0;
+	for(i = i+10;m_string[i]!='\0';++i,++j){
+	    password[j] = m_string[i];
+	} 
+	//字符串末尾添0
+	password[j] = '\0';
+
+	if(*(p+1)=='3'){
+	    //应该先检测数据库中是否有重名的。
+		
+	    printf("1\n");
+	    //没有重名的话，就要进行数据增加。
+	    char *sql_insert = (char*)malloc(sizeof(char)*200);
+	    //这里应该仅仅是根据name和密码添加到数据库。一堆乱七八糟的玩意，本质上是写一个字符串。这可以封装成一个函数。另外操作字符数组也太麻烦了，还不如用string。
+	    //有两个改进点。第一个就是可以用string避免这些字符指针操作；第二个就是可以把这些业务单独封装成一个方法
+	    strcpy(sql_insert,"INSERT INTO user(username,passwd)VALUES()");
+	    strcat(sql_insert,"'");
+	    strcat(sql_insert,name);
+	    strcat(sql_insert,"','");
+	    strcat(sql_insert,password);
+	    strcat(sql_insert,"')");
+	    printf("2\n");
+	    //如果注册的用户没有，那么就先添加到缓存，再放到数据库
+	    if(users.find(name)==users.end()){
+		//为什么这个位置要加互斥锁啊？我不理解orz
+		m_lock.lock();
+		int res = mysql_query(mysql,sql_insert);
+		users.insert(pair<string,string>(name,name));
+		m_lock.unlock();
+		//如果数据库添加成功，那么就返回一个登陆界面。
+		if(!res)
+		    strcpy(m_url,"/log.html");
+		//否则，就返回注册错误
+		else
+		    strcpy(m_url,"/registerError.html");
+	    }
+	    else strcpy(m_url,"/registerError.html");
+	}
+	//如果是登录
+	else if(*(p+1)=='2'){
+	    if(users.find(name)!=users.end()&&users[name]==password)
+		strcpy(m_url,"/welcome.html");
+	    else strcpy(m_url,"/logError.html");
+	}
+    }
+    if(*(p+1)=='0'){
+	//用cpp写个业务真吉尔麻烦，还要自己在堆上申请内存。我用java直接string就行了，管你啥内存，JVM自己都处理了。
+	char *m_url_real = (char *)malloc(sizeof(char)*200);
+	strcpy(m_url_real,"/register.html");
+	strncpy(m_real_file+len,m_url_real,strlen(m_url_real));
+	free(m_url_real);
+    }
+    else if(*(p+1)=='1'){
+        char *m_url_real = (char *)malloc(sizeof(char)*200);
+        strcpy(m_url_real,"/log.html");
+        strncpy(m_real_file+len,m_url_real,strlen(m_url_real));
+        free(m_url_real);
+    }
+    else if(*(p+1)=='5'){
+        char *m_url_real = (char *)malloc(sizeof(char)*200);
+        strcpy(m_url_real,"/picture.html");
+        strncpy(m_real_file+len,m_url_real,strlen(m_url_real));
+        free(m_url_real);
+    }
+    else if(*(p+1)=='6'){
+        //用cpp写个业务真吉尔麻烦，还要自己在堆上申请内存。我用java直接string就>行了，管你啥内存，JVM自己都处理了。
+        char *m_url_real = (char *)malloc(sizeof(char)*200);
+        strcpy(m_url_real,"/video.html");
+        strncpy(m_real_file+len,m_url_real,strlen(m_url_real));
+        free(m_url_real);
+    }
+    else if(*(p+1)=='7'){
+        //用cpp写个业务真吉尔麻烦，还要自己在堆上申请内存。我用java直接string就>行了，管你啥内存，JVM自己都处理了。
+        char *m_url_real = (char *)malloc(sizeof(char)*200);
+        strcpy(m_url_real,"/fans.html");
+        strncpy(m_real_file+len,m_url_real,strlen(m_url_real));
+        free(m_url_real);
+    }
+
+
+
+    //其他情况，说明是get请求，url里面就有请求的网页地址比如index.html这样的东西，所以m_real_file只需要加上这个url就好。
+    //get：直接从url读  post：消息体有字段：根据字段处理、然后return相应的界面    消息体无字段：根据字段比如1直接return相应的界面比如register.html
     //在doc_root后面跟着复制m_url
+    else
     strncpy(m_real_file+len,m_url,FILENAME_LEN-len-1);
     //m_file_stat中存储目标文件的一些属性，比如大小、是否为目录等
     if(stat(m_real_file,&m_file_stat)<0){
@@ -369,12 +490,12 @@ void http_conn::unmap(){
    }
 }
 
-//写HTTP响应
+//写HTTP响应(这个方法是主线程调用的，当工作线程已经处理完接受的请求，并且把相应数据放到了内存里。这个方法只是主线程调用来把内存的数据写入socket。)
 bool http_conn::write(){
     int temp = 0;
-    int bytes_have_send = 0;//已经发送了多少字节。
-    int bytes_to_send = m_write_idx;//还剩多少字节没发送。
-    //什么意思？
+    //int bytes_have_send = 0;//已经发送了多少字节。
+    //int bytes_to_send = m_write_idx;//还剩多少字节没发送。
+    //如果待发送数据为0，那么说明这次发送over，重新初始化。
     if(bytes_to_send == 0){
 	modfd(m_epollfd,m_sockfd,EPOLLIN,true);
 	init();
@@ -394,8 +515,18 @@ bool http_conn::write(){
 	}
 	bytes_to_send -= temp;
 	bytes_have_send += temp;
-	if(bytes_to_send<bytes_have_send){
-	    //发送HTTP成功？
+	//如果已经发送的数据大于内存中第一块地方的长度，那么就要修改m_iv的具体值。因为writev系统调用不会自动帮你干
+	if(bytes_have_send>=m_iv[0].iov_len){
+	    m_iv[0].iov_len = 0;
+	    m_iv[1].iov_base = m_file_address+(bytes_have_send-m_write_idx);
+	    m_iv[1].iov_len = bytes_to_send;
+	}
+	else{
+	    m_iv[0].iov_base = m_write_buf+bytes_have_send;
+	    m_iv[0].iov_len = m_iv[0].iov_len-bytes_have_send;
+	}
+	//如果剩余未发送的为0，那么说明发完了，就可以重新注册该socket的可读事件。
+	if(bytes_to_send<=0){
 	    unmap();
 	    //如果是长连接，说明这次http请求处理结束后不close fd，
 	    if(m_linger){
@@ -411,7 +542,8 @@ bool http_conn::write(){
     }
 }
 
-//往写缓冲中写入待发送的数据
+//往写缓冲write_buf中写入待发送的数据(是http响应的状态行和头部等)
+//write_idx代表已经在这个buf中写了多少内容了。
 bool http_conn::add_response(const char* format,...){
     if(m_write_idx>=WRITE_BUFFER_SIZE){
 	return false;
@@ -494,17 +626,20 @@ bool http_conn::process_write(HTTP_CODE ret){
 	case FILE_REQUEST:{
 	    add_status_line(200,ok_200_title);
 	    if(m_file_stat.st_size != 0){
+		//这里就是m_iv真正被初始化的地方
 		add_headers(m_file_stat.st_size);
 		m_iv[0].iov_base = m_write_buf;
 		m_iv[0].iov_len = m_write_idx;
 		m_iv[1].iov_base = m_file_address;
 		m_iv[1].iov_len = m_file_stat.st_size;
 		m_iv_count = 2;
+		//bytes_to_send存储了当前HTTP请求的响应部分的总待发送部分长度。m_write_idx表示栈上的writebuf大小，存储了HTTP响应的头部；m_file_stat.size表示了堆上的m_file_address大小，存储了HTTP响应的主体部分。
+		bytes_to_send = m_write_idx+m_file_stat.st_size;
 		return true;
 	    }
 	    else{
 		const char* ok_string = "<html><body></body></html>";
-		add_headers(strlen(ok_string));\
+		add_headers(strlen(ok_string));
 		if(!add_content(ok_string)){
 		    return false;
 		}

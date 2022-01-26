@@ -89,6 +89,8 @@ class http_conn{
 	    static int m_epollfd;
 	    //统计用户数量
 	    static int m_user_count;
+	    //每个http_conn都可能有数据库操作，所以需要有一个MYSQL对象。
+	    MYSQL *mysql;
 	private:
 	//该 http连接的socketfd和对方的端口号ip地址
 	int m_sockfd;
@@ -131,5 +133,13 @@ class http_conn{
 	//使用writev集中写，所以定义下面两个成员。其中m_iv_count表示被写内存块的数量。
 	struct iovec m_iv[2];
 	int m_iv_count;
+	//是否启用POST
+	int cgi;
+	//请求头数据
+	char *m_string;
+	//还需要往socket写多少
+	int bytes_to_send;
+	//已经往socket写了多少
+	int bytes_have_send;
 };
 #endif	
