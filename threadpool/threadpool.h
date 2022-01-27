@@ -9,12 +9,16 @@
 //线程同步机制包装类
 #include "../locker/locker.h"
 
+//数据库连接池类
+#include "../CGImysql/sql_connection_pool.h"
+
 //线程池类。定义成模板类方便代码复用。
 template<typename T>
 class threadpool{
     public:
 	//构造函数。thread_number是线程池中线程的数量，max_requests是请求队列中最多允许的等待处理的请求数量。
-	threadpool(int thread_number = 8,int max_requests = 10000);
+	//另外注意，如果构造函数是用到了默认参数，应该把其放在后面。
+	threadpool(connection_pool *connPool,int thread_number = 8,int max_requests = 10000);
 	~threadpool();
 	//append函数。往请求队列中添加任务。
 	bool append(T* request);
@@ -32,11 +36,13 @@ class threadpool{
 	locker m_queuelocker;//保护请求队列的互斥锁
 	sem m_queuestat;//判断是否有任务需要处理的信号量
 	bool m_stop;//是否结束线程
+	connection_pool *m_connPool;//数据库
 };
 
 //线程池构造函数。初始化了一些重要参数，同时创建好指定数量的线程
+//这里需要初始化指向数据库连接池的指针哇～
 template<typename T>
-threadpool<T>::threadpool(int thread_number,int max_requests):m_thread_number(thread_number),m_max_requests(max_requests),m_stop(false),m_threads(NULL){
+threadpool<T>::threadpool(connection_pool *connPool,int thread_number,int max_requests):m_thread_number(thread_number),m_max_requests(max_requests),m_stop(false),m_threads(NULL),m_connPool(connPool){
     if((thread_number<=0)||(max_requests<=0)){
 	throw std::exception();
     }
@@ -107,6 +113,7 @@ void threadpool<T>::run(){
 	if(!request){
 	    continue;
 	}
+	connectionRALL mysqlcon(&request->mysql,m_connPool);
 	request->process();
     }
 }

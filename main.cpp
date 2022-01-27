@@ -102,7 +102,7 @@ int main(int argc,char* argv[]){
     //初始化线程池，此时所有线程都是饥饿状态，wait()死等着。
     threadpool<http_conn>* pool =NULL;
     try{
-	pool = new threadpool<http_conn>;
+	pool = new threadpool<http_conn>(connPool);
     }
     catch(...)
     {

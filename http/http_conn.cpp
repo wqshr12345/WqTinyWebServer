@@ -386,8 +386,6 @@ http_conn::HTTP_CODE http_conn::do_request(){
 
 	if(*(p+1)=='3'){
 	    //应该先检测数据库中是否有重名的。
-		
-	    printf("1\n");
 	    //没有重名的话，就要进行数据增加。
 	    char *sql_insert = (char*)malloc(sizeof(char)*200);
 	    //这里应该仅仅是根据name和密码添加到数据库。一堆乱七八糟的玩意，本质上是写一个字符串。这可以封装成一个函数。另外操作字符数组也太麻烦了，还不如用string。
@@ -398,14 +396,17 @@ http_conn::HTTP_CODE http_conn::do_request(){
 	    strcat(sql_insert,"','");
 	    strcat(sql_insert,password);
 	    strcat(sql_insert,"')");
-	    printf("2\n");
 	    //如果注册的用户没有，那么就先添加到缓存，再放到数据库
 	    if(users.find(name)==users.end()){
 		//为什么这个位置要加互斥锁啊？我不理解orz
 		m_lock.lock();
+		printf("1\n");
 		int res = mysql_query(mysql,sql_insert);
+		printf("2\n");
 		users.insert(pair<string,string>(name,name));
+		printf("3\n");
 		m_lock.unlock();
+		printf("4\n");
 		//如果数据库添加成功，那么就返回一个登陆界面。
 		if(!res)
 		    strcpy(m_url,"/log.html");
