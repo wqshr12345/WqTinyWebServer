@@ -163,6 +163,7 @@ int main(int argc,char* argv[]){
 
 
     while(!stop_server){
+	printf("循环中\n");
 	int number = epoll_wait(epollfd,events,MAX_EVENT_NUMBER,-1);
 	if((number<0)&&(errno!=EINTR)){
 	    LOG_ERROR("%s","epoll failure");
@@ -173,9 +174,11 @@ int main(int argc,char* argv[]){
 	for(int i = 0;i<number;i++){
 	    int sockfd = events[i].data.fd;
 	    if(sockfd == listenfd){
+		printf("新连接到咯!\n");
 		struct sockaddr_in client_address;
 		socklen_t client_addrlength = sizeof(client_address);
 		int connfd = accept(listenfd,(struct sockaddr*)&client_address,&client_addrlength);
+		printf("这次的sockfd是%d\n",connfd);
 		if(connfd<0){
 		    //printf("errno is: %d\n",errno);
 		    LOG_ERROR("%serrno is:%d","accept error",errno);

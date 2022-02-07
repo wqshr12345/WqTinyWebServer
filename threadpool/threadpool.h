@@ -101,6 +101,7 @@ void threadpool<T>::run(){
     while(!m_stop){
 	m_queuestat.wait();
 	m_queuelocker.lock();
+	printf("一个任务正在被线程池处理\n");
 	//有个最大的问题：如果m_queuestat为0，也就是待请求队列数量为0，那么wait会一直阻塞啊，所以这段调用好像用不到？(一会写一个测试案例)
 	if(m_workqueue.empty()){
 	    m_queuelocker.unlock();
@@ -115,6 +116,7 @@ void threadpool<T>::run(){
 	}
 	connectionRALL mysqlcon(&request->mysql,m_connPool);
 	request->process();
+	printf("一个任务已经被处理完了\n");
     }
 }
 #endif

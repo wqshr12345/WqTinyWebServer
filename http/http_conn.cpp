@@ -215,6 +215,7 @@ http_conn::HTTP_CODE http_conn::parse_request_line(char* text){
     else{
         return BAD_REQUEST;
     }
+    printf("1\n");
     m_url += strspn(m_url," \t");//跳过url字符串中的 \t字段。
     m_version = strpbrk(m_url," \t");
     if(!m_version){
@@ -222,9 +223,10 @@ http_conn::HTTP_CODE http_conn::parse_request_line(char* text){
     }
     *m_version++ = '\0';
     m_version += strspn(m_version," \t");
-    if(strcasecmp(m_version,"HTTP/1.1")!=0){
+    if(strcasecmp(m_version,"HTTP/1.1")!=0&&strcasecmp(m_version,"HTTP/1.0")!=0){
         return BAD_REQUEST;
     }
+    printf("2\n");
     //m_url现在是http://baidu.com/index.html 之类。前面的http://是没有意义的，应该去掉.去掉之后剩下baidu.com/index.html这类。还应该让m_url自己跳到index.html，用strchr。
     if(strncasecmp(m_url,"http://",7)==0){
         m_url+=7;
@@ -390,7 +392,7 @@ http_conn::HTTP_CODE http_conn::do_request(){
 	    char *sql_insert = (char*)malloc(sizeof(char)*200);
 	    //这里应该仅仅是根据name和密码添加到数据库。一堆乱七八糟的玩意，本质上是写一个字符串。这可以封装成一个函数。另外操作字符数组也太麻烦了，还不如用string。
 	    //有两个改进点。第一个就是可以用string避免这些字符指针操作；第二个就是可以把这些业务单独封装成一个方法
-	    strcpy(sql_insert,"INSERT INTO user(username,passwd)VALUES()");
+	    strcpy(sql_insert,"INSERT INTO user(username,passwd)VALUES(");
 	    strcat(sql_insert,"'");
 	    strcat(sql_insert,name);
 	    strcat(sql_insert,"','");
@@ -400,13 +402,9 @@ http_conn::HTTP_CODE http_conn::do_request(){
 	    if(users.find(name)==users.end()){
 		//为什么这个位置要加互斥锁啊？我不理解orz
 		m_lock.lock();
-		printf("1\n");
 		int res = mysql_query(mysql,sql_insert);
-		printf("2\n");
-		users.insert(pair<string,string>(name,name));
-		printf("3\n");
+		users.insert(pair<string,string>(name,password));
 		m_lock.unlock();
-		printf("4\n");
 		//如果数据库添加成功，那么就返回一个登陆界面。
 		if(!res)
 		    strcpy(m_url,"/log.html");
