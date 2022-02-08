@@ -1,0 +1,27 @@
+{
+    "configurations": [
+        {
+            "name": "Linux",
+            "includePath": [
+                "${workspaceFolder}/**",
+                "${workspaceFolder}/http",
+                "${workspaceFolder}/locker",
+                "${workspaceFolder}/log",
+                "${workspaceFolder}/timer",
+                "/usr/include",
+                "/usr/lib/gcc/i686-linux-gnu/5/include",
+                "/usr/local/include",
+                "/usr/lib/gcc/i686-linux-gnu/5/include-fixed",
+                "/usr/include/i386-linux-gnu",
+                "/home/wangqian/GitHub/WqTinyWebServer"
+               
+            ],
+            "defines": [],
+            "compilerPath": "/usr/bin/gcc",
+            "cStandard": "c11",
+            "cppStandard": "c++17",
+            "intelliSenseMode": "clang-x64"
+        }
+    ],
+    "version": 4
+}
