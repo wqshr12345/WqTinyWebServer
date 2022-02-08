@@ -9,9 +9,7 @@
 #include<stdlib.h>
 #include<assert.h>
 #include<sys/epoll.h>
-#include "utils/Epoll.h"
-#include "utils/ipAddress.h"
-#include "utils/Socket.h"
+
 #include "locker/locker.h"
 #include "threadpool/threadpool.h"
 #include "http/http_conn.h"
@@ -21,7 +19,7 @@
 
 
 #define MAX_FD 65536  //最大文件描述符
-//#define MAX_EVENT_NUMBER 10000  //epoll最大监听事件数
+#define MAX_EVENT_NUMBER 10000  //epoll最大监听事件数
 #define TIMESLOT 5  
 //最小超时单位
 
@@ -120,44 +118,36 @@ int main(int argc,char* argv[]){
     users->initmysql_result(connPool);
     
     //监听socket的建立绑定监听等
-	Socket* listenSocket = new Socket();
-	listenSocket->setnonblock();
-    //int listenfd = socket(AF_INET,SOCK_STREAM,0);
-    //assert(listenfd!=-1);
+    int listenfd = socket(AF_INET,SOCK_STREAM,0);
+    assert(listenfd!=-1);
 
-	ipAddress* adddress = new ipAddress(ip,port);
-    //struct sockaddr_in address;
-    //bzero(&address,sizeof(address));
-    //address.sin_family = AF_INET;
-    //inet_pton(AF_INET,ip,&address.sin_addr);
-    //address.sin_port = htons(port);
+    struct sockaddr_in address;
+    bzero(&address,sizeof(address));
+    address.sin_family = AF_INET;
+    inet_pton(AF_INET,ip,&address.sin_addr);
+    address.sin_port = htons(port);
 
-	listenSocket->bind(adddress);
-    // int ret = bind(listenfd,(sockaddr*)&address,sizeof(address));
-    // assert(ret!=-1);
-	listenSocket->listen();
-    // ret = listen(listenfd,5);
-    // assert(ret!=-1);
+    int ret = bind(listenfd,(sockaddr*)&address,sizeof(address));
+    assert(ret!=-1);
+ 
+    ret = listen(listenfd,5);
+    assert(ret!=-1);
 
-	Epoll* epoll = new Epoll();
     //设置epoll并addfd   
-    // epoll_event events[MAX_EVENT_NUMBER];
-    // epollfd = epoll_create(5);
-    // assert(epollfd!=-1);
-	printf("%d listenfd",listenSocket->getFd());
-	epoll->addFd(listenSocket->getFd());
+    epoll_event events[MAX_EVENT_NUMBER];
+    epollfd = epoll_create(5);
+    assert(epollfd!=-1);
     //listenfd并不需要设置oneshot，因为其只会被主线程处理，不存在并发问题。et设不设置无所谓。
-    //addfd(epollfd,listenfd,false);
+    addfd(epollfd,listenfd,false);
 
     //！！！之前没加这一行，所以http_conn类里的epollfd默认是0，那init的时候都注册到0里面了，注册了个寂寞！
-    http_conn::m_epollfd = epoll->getFd();    
+    http_conn::m_epollfd = epollfd;    
     
     //创建管道，用于监听信号。实现统一事件处理
-    int ret = socketpair(PF_UNIX,SOCK_STREAM,0,pipefd);
+    ret = socketpair(PF_UNIX,SOCK_STREAM,0,pipefd);
     assert(ret!=-1);
     setnonblocking(pipefd[1]);
-    epoll->addFd(pipefd[0]);
-	//addfd(epollfd,pipefd[0],false);
+    addfd(epollfd,pipefd[0],false);
 
     //信号的处理(为特定信号设置信号处理函数)
     addsig(SIGALRM,sig_handler);
@@ -173,26 +163,21 @@ int main(int argc,char* argv[]){
 
 
     while(!stop_server){
-		printf("debug1\n");
-		pair<epoll_event*,int> epollPair = epoll->epoll_wait(-1);
-		printf("debug2\n");
-	printf("%d\n",epollPair.second);
-	//int number = epoll_wait(epollfd,events,MAX_EVENT_NUMBER,-1);
-	if((epollPair.second <0)&&(errno!=EINTR)){
+	printf("循环中\n");
+	int number = epoll_wait(epollfd,events,MAX_EVENT_NUMBER,-1);
+	if((number<0)&&(errno!=EINTR)){
 	    LOG_ERROR("%s","epoll failure");
 	    //printf("epoll failure\n");
 	    break;
 	}
-	for(int i = 0;i<epollPair.second;i++){
-	    int sockfd = epollPair.first[i].data.fd;
-	    if(sockfd == listenSocket->getFd()){
+
+	for(int i = 0;i<number;i++){
+	    int sockfd = events[i].data.fd;
+	    if(sockfd == listenfd){
 		printf("新连接到咯!\n");
-		ipAddress* client_address = new ipAddress();
-		//struct sockaddr_in client_address;
-		//socklen_t client_addrlength = sizeof(client_address);
-		
-		int connfd = listenSocket->accept(client_address);
-		//int connfd = accept(listenfd,(struct sockaddr*)&client_address,&client_addrlength);
+		struct sockaddr_in client_address;
+		socklen_t client_addrlength = sizeof(client_address);
+		int connfd = accept(listenfd,(struct sockaddr*)&client_address,&client_addrlength);
 		printf("这次的sockfd是%d\n",connfd);
 		if(connfd<0){
 		    //printf("errno is: %d\n",errno);
@@ -206,11 +191,11 @@ int main(int argc,char* argv[]){
 		    continue;
 		}
 		//调用init函数为这个连接初始化一些东西，包括不限于读写buffer、文件名称buffer、客户端sock的fd与ip和端口地址。同时还要把这个connfd添加到epoll的内核表(同时注册EPOLLIN可读事件)。
-		users[connfd].init(connfd,client_address->address);
+		users[connfd].init(connfd,client_address);
 
 		//初始化client_data数据  讲道理，这个client_data类的内容可以定义在http_conn类里面，无非就在里面多加一个定时器罢了。
 		//而且我觉得下面的可以封装成一个client_data中的方法。
-		users_timer[connfd].address = client_address->address;
+		users_timer[connfd].address = client_address;
 		users_timer[connfd].sockfd = connfd;
 		util_timer *timer = new util_timer;
 		timer->user_data = &users_timer[connfd];
@@ -223,7 +208,7 @@ int main(int argc,char* argv[]){
 
 	    }
 	    //如果遇到异常，直接关闭该连接socket。
-	    else if(epollPair.first[i].events&(EPOLLRDHUP|EPOLLHUP|EPOLLERR)){
+	    else if(events[i].events&(EPOLLRDHUP|EPOLLHUP|EPOLLERR)){
 		//直接调用定时器的方法去close这个连接，同时把这个定时器从链表里删掉
 		util_timer *timer = users_timer[sockfd].timer;
 		timer->cb_func(&users_timer[sockfd]);
@@ -233,7 +218,7 @@ int main(int argc,char* argv[]){
 		//users[sockfd].close_conn();
 	    }
 	    //处理信号
-	    else if((sockfd == pipefd[0])&&(epollPair.first[i].events & EPOLLIN)){
+	    else if((sockfd == pipefd[0])&&(events[i].events & EPOLLIN)){
 		int sig;
 		char signals[1024];
 		ret = recv(pipefd[0],signals,sizeof(signals),0);
@@ -259,7 +244,7 @@ int main(int argc,char* argv[]){
 	    }
 	    //如果是监听到可读事件，那么说明连接socket有数据可读。先调用read()方法把数据读到一个http_conn对象的buffer里。
 	    //从这里可以看出，这是一种reactor模式，主线程自己把数据的IO做好了，其他线程只需要处理逻辑业务。
-	    else if(epollPair.first[i].events & EPOLLIN){
+	    else if(events[i].events & EPOLLIN){
 		//如果读取成功，再调用子线程处理逻辑业务(就是分析解析http请求之类的)
 		util_timer *timer = users_timer[sockfd].timer;
 		if(users[sockfd].read()){
@@ -286,7 +271,7 @@ int main(int argc,char* argv[]){
 		}
 	    }
 	    //如果监听到可写事件，说明这个socket已经被处理完了，数据已经放在写buffer里，等待主线程把这个发送到socket里面。
-	    else if(epollPair.first[i].events & EPOLLOUT){
+	    else if(events[i].events & EPOLLOUT){
 		util_timer *timer = users_timer[sockfd].timer;
 		//根据http的长短连接决定写完后是否要close这个连接。
 		if(!users[sockfd].write()){
@@ -317,11 +302,8 @@ int main(int argc,char* argv[]){
 	    timeout = false;
 	}
     }
-    //close(epollfd);
-    //close(listenfd);
-	delete epoll;
-	delete listenSocket;
-	delete adddress;
+    close(epollfd);
+    close(listenfd);
     close(pipefd[1]);
     close(pipefd[0]);
     delete [] users_timer;
